@@ -742,6 +742,26 @@ const BannerSlider = React.memo(({
   );
 });
 
+const DEFAULT_CATEGORIES = [
+  { name: "Rings", label: "Rings", img: "/cat_rings.png" },
+  { name: "Necklaces", label: "Necklaces", img: "/cat_necklaces.png" },
+  { name: "Earrings", label: "Earrings", img: "/cat_earrings.png" },
+  { name: "Bracelets", label: "Bracelets", img: "/cat_bracelets.png" },
+  { name: "Bridal Collection", label: "Bridal Collection", img: "/cat_bridal.png" }
+];
+
+const getCategoryDefaultImg = (name, img) => {
+  if (img && img !== '/logo.svg') return img;
+  if (!name) return '/logo.svg';
+  const lower = name.toLowerCase();
+  if (lower.includes('ring')) return '/cat_rings.png';
+  if (lower.includes('necklace')) return '/cat_necklaces.png';
+  if (lower.includes('earring')) return '/cat_earrings.png';
+  if (lower.includes('bracelet') || lower.includes('bangle')) return '/cat_bracelets.png';
+  if (lower.includes('bridal')) return '/cat_bridal.png';
+  return '/logo.svg';
+};
+
 const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCategoryClick }) => {
   const { language } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -752,11 +772,11 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
     const fetchCategories = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/products/categories`);
-        if (isMounted) {
-          const mapped = (response.data || []).map(cat => ({
+        if (isMounted && response.data && response.data.length > 0) {
+          const mapped = response.data.map(cat => ({
             name: cat.name,
             label: cat.name,
-            img: cat.image_url || "/logo.svg"
+            img: getCategoryDefaultImg(cat.name, cat.image_url)
           }));
           setCategories(mapped);
         }
@@ -770,7 +790,9 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
     return () => { isMounted = false; };
   }, []);
 
-  if (loading || parentLoading) {
+  const displayCategories = (categories && categories.length > 0) ? categories : DEFAULT_CATEGORIES;
+
+  if (loading && parentLoading) {
     return (
       <>
         <CategorySkeleton />
@@ -801,7 +823,7 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
           </div>
 
           <div className="flex justify-center items-center gap-8 lg:gap-14 flex-wrap">
-            {categories.map((cat) => {
+            {displayCategories.map((cat) => {
               const isActive = activeCategory === cat.name;
               return (
                 <motion.div
@@ -873,7 +895,7 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
           </div>
 
           <div className="flex overflow-x-auto gap-4 pb-2 scroll-smooth snap-x snap-mandatory justify-start no-scrollbar">
-            {categories.map((cat) => {
+            {displayCategories.map((cat) => {
               const isActive = activeCategory === cat.name;
               return (
                 <motion.div

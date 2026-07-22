@@ -1241,6 +1241,7 @@ def check_and_run_monthly_reports():
             run_monthly_report_flow(prev_month, prev_year)
             print(f"[REPORT SCHEDULER] Automation completed successfully for {prev_month_name} {prev_year}.")
     except Exception as e:
+        db.session.rollback()
         print(f"[REPORT SCHEDULER ERROR] Automation failed: {e}")
 
 # Initialization of background thread

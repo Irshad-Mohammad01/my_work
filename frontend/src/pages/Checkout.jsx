@@ -1646,8 +1646,8 @@ export const Checkout = () => {
                 <span className="font-bold text-slate-855 dark:text-slate-55 price-amount">₹{formatPrice(successOrder.total_amount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">{t('checkout_page.est_delivery')}</span>
-                <span className="font-bold text-slate-850 dark:text-slate-55">{t('checkout_page.delivery_days')}</span>
+                <span className="text-slate-400">{t('checkout_page.est_delivery', { defaultValue: 'Tracking Link' })}</span>
+                <span className="font-bold text-slate-850 dark:text-slate-55">{t('checkout_page.delivery_days', { defaultValue: 'Tracking link will be provided to you soon.' })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{t('checkout_page.shipping_address')}</span>

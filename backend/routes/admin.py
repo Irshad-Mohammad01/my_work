@@ -1192,6 +1192,155 @@ def delete_category_admin(id):
         db.session.rollback()
         return jsonify({"message": f"Failed to delete category: {str(e)}"}), 500
 
+# ==========================================
+# ADMIN COLLECTION MANAGEMENT ROUTES
+# ==========================================
+@admin_bp.route('/collections', methods=['GET'])
+@admin_required
+def get_admin_collections():
+    from backend.models.collection import CollectionModel
+    try:
+        collections = CollectionModel.query.order_by(CollectionModel.display_order.asc(), CollectionModel.id.asc()).all()
+        return jsonify([c.to_dict() for c in collections]), 200
+    except Exception as e:
+        print("Error fetching admin collections:", e)
+        return jsonify([]), 200
+
+@admin_bp.route('/collections', methods=['POST'])
+@admin_required
+def create_collection():
+    from backend.models.collection import CollectionModel
+    from backend.utils.cache import products_cache
+    import json
+    data = request.get_json() or {}
+    name = (data.get("name") or data.get("title") or "").strip()
+    if not name:
+        return jsonify({"message": "Collection Name is required."}), 400
+
+    slug = (data.get("slug") or name.lower().replace(" ", "-")).strip()
+    subtitle = data.get("subtitle") or ""
+    description = data.get("description") or ""
+    image_url = data.get("image") or data.get("image_url") or data.get("thumbnail_image") or ""
+    
+    tips = data.get("styling_tips") or []
+    tips_str = json.dumps(tips) if isinstance(tips, list) else str(tips)
+
+    display_order = int(data.get("display_order", 0))
+    is_active = bool(data.get("is_active", True))
+
+    existing = CollectionModel.query.filter((CollectionModel.name == name) | (CollectionModel.slug == slug)).first()
+    if existing:
+        return jsonify({"message": "A collection with this name or slug already exists."}), 400
+
+    coll = CollectionModel(
+        name=name,
+        slug=slug,
+        subtitle=subtitle,
+        description=description,
+        image=image_url,
+        thumbnail_image=image_url,
+        banner_image=image_url,
+        styling_tips=tips_str,
+        display_order=display_order,
+        is_active=is_active
+    )
+    db.session.add(coll)
+    db.session.commit()
+    products_cache.clear()
+
+    from backend.utils.audit import log_admin_action
+    log_admin_action("Collection Created", "Collection Management", f"Created collection '{name}'")
+
+    return jsonify({"message": "Collection created successfully!", "collection": coll.to_dict()}), 201
+
+@admin_bp.route('/collections/<id>', methods=['PUT'])
+@admin_required
+def update_collection(id):
+    from backend.models.collection import CollectionModel
+    from backend.utils.cache import products_cache
+    import json
+    try:
+        coll_id = int(id)
+        coll = CollectionModel.query.get(coll_id)
+        if not coll:
+            return jsonify({"message": "Collection not found."}), 404
+            
+        data = request.get_json() or {}
+        if "name" in data or "title" in data:
+            coll.name = (data.get("name") or data.get("title")).strip()
+            coll.slug = coll.name.lower().replace(" ", "-")
+        if "subtitle" in data:
+            coll.subtitle = data["subtitle"]
+        if "description" in data:
+            coll.description = data["description"]
+        if "image" in data or "image_url" in data:
+            img = data.get("image") or data.get("image_url")
+            coll.image = img
+            coll.thumbnail_image = img
+            coll.banner_image = img
+        if "styling_tips" in data:
+            tips = data["styling_tips"]
+            coll.styling_tips = json.dumps(tips) if isinstance(tips, list) else str(tips)
+        if "display_order" in data:
+            coll.display_order = int(data["display_order"])
+        if "is_active" in data:
+            coll.is_active = bool(data["is_active"])
+
+        db.session.commit()
+        products_cache.clear()
+
+        from backend.utils.audit import log_admin_action
+        log_admin_action("Collection Updated", "Collection Management", f"Updated collection '{coll.name}'")
+
+        return jsonify({"message": "Collection updated successfully!", "collection": coll.to_dict()}), 200
+    except Exception as e:
+        print("Error updating collection:", e)
+        return jsonify({"message": "Failed to update collection."}), 500
+
+@admin_bp.route('/collections/<id>', methods=['DELETE'])
+@admin_required
+def delete_collection(id):
+    from backend.models.collection import CollectionModel
+    from backend.utils.cache import products_cache
+    try:
+        coll_id = int(id)
+        coll = CollectionModel.query.get(coll_id)
+        if not coll:
+            return jsonify({"message": "Collection not found."}), 404
+
+        coll_name = coll.name
+        db.session.delete(coll)
+        db.session.commit()
+        products_cache.clear()
+
+        from backend.utils.audit import log_admin_action
+        log_admin_action("Collection Deleted", "Collection Management", f"Deleted collection '{coll_name}'")
+
+        return jsonify({"message": "Collection deleted successfully!"}), 200
+    except Exception as e:
+        print("Error deleting collection:", e)
+        return jsonify({"message": "Failed to delete collection."}), 500
+
+@admin_bp.route('/collections/<id>/toggle', methods=['PUT'])
+@admin_required
+def toggle_collection_active(id):
+    from backend.models.collection import CollectionModel
+    from backend.utils.cache import products_cache
+    try:
+        coll_id = int(id)
+        coll = CollectionModel.query.get(coll_id)
+        if not coll:
+            return jsonify({"message": "Collection not found."}), 404
+
+        coll.is_active = not coll.is_active
+        db.session.commit()
+        products_cache.clear()
+
+        return jsonify({"message": f"Collection '{coll.name}' is now {'active' if coll.is_active else 'inactive'}.", "collection": coll.to_dict()}), 200
+    except Exception as e:
+        print("Error toggling collection:", e)
+        return jsonify({"message": "Failed to toggle collection state."}), 500
+
 
 
 

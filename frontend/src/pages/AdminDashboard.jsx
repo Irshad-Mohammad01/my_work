@@ -150,10 +150,14 @@ export const AdminDashboard = () => {
     return initialSlots;
   };
 
+  const [collectionsList, setCollectionsList] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
+
   // Add Product form state
   const [newProduct, setNewProduct] = useState({
     name: '',
     category: 'Rings',
+    collection: '',
     price: '',
     discount: 0,
     stock: '',
@@ -178,6 +182,121 @@ export const AdminDashboard = () => {
   const [isAddImagesOpen, setIsAddImagesOpen] = useState(false);
   const [isEditImagesOpen, setIsEditImagesOpen] = useState(false);
   const [returnNotes, setReturnNotes] = useState({});
+
+  // Collection Management State
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [collectionForm, setCollectionForm] = useState({
+    name: '',
+    subtitle: '',
+    description: '',
+    image: '',
+    display_order: 0,
+    is_active: true
+  });
+  const [uploadingCollectionImage, setUploadingCollectionImage] = useState(false);
+
+  const handleOpenAddCollection = () => {
+    setEditingCollection(null);
+    setCollectionForm({
+      name: '',
+      subtitle: '',
+      description: '',
+      image: '',
+      display_order: collectionsList.length + 1,
+      is_active: true
+    });
+    setCollectionModalOpen(true);
+  };
+
+  const handleOpenEditCollection = (coll) => {
+    setEditingCollection(coll);
+    setCollectionForm({
+      name: coll.name || '',
+      subtitle: coll.subtitle || '',
+      description: coll.description || '',
+      image: coll.image || coll.image_url || '',
+      display_order: coll.display_order || 0,
+      is_active: coll.is_active !== false
+    });
+    setCollectionModalOpen(true);
+  };
+
+  const handleCollectionFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!collectionForm.name.trim()) {
+      alert("Collection Name is required.");
+      return;
+    }
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    try {
+      if (editingCollection) {
+        await axios.put(`${API_BASE_URL}/admin/collections/${editingCollection.id}`, collectionForm, { headers });
+        showToast("Collection updated successfully!", "success");
+      } else {
+        await axios.post(`${API_BASE_URL}/admin/collections`, collectionForm, { headers });
+        showToast("Collection created successfully!", "success");
+      }
+      setCollectionModalOpen(false);
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to save collection.");
+    }
+  };
+
+  const handleDeleteCollection = async (collId, collName) => {
+    if (!window.confirm(`Are you sure you want to delete collection '${collName}'?`)) return;
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`${API_BASE_URL}/admin/collections/${collId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      showToast("Collection deleted successfully!", "success");
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to delete collection.");
+    }
+  };
+
+  const handleToggleCollection = async (collId) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.put(`${API_BASE_URL}/admin/collections/${collId}/toggle`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to toggle collection state.");
+    }
+  };
+
+  const handleCollectionImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCollectionImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/products/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      let finalUrl = res.data.url;
+      if (finalUrl.startsWith('/static/')) {
+        finalUrl = `${SERVER_BASE_URL}${finalUrl}`;
+      }
+      setCollectionForm(prev => ({ ...prev, image: finalUrl }));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload image.");
+    } finally {
+      setUploadingCollectionImage(false);
+    }
+  };
 
   // Quick Action States
   const [selectedStockProduct, setSelectedStockProduct] = useState(null);
@@ -245,6 +364,31 @@ export const AdminDashboard = () => {
       setProducts(res.data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/products/categories`);
+      if (res.data) {
+        setCategoriesList(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    }
+  };
+
+  const fetchCollections = async () => {
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/admin/collections`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.data) {
+        setCollectionsList(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch collections:", err);
     }
   };
 
@@ -880,6 +1024,8 @@ export const AdminDashboard = () => {
     setError('');
     await fetchStats();
     await fetchProducts();
+    await fetchCategories();
+    await fetchCollections();
     await fetchOrders();
     await fetchMessages();
     await fetchUsers();
@@ -895,6 +1041,13 @@ export const AdminDashboard = () => {
       loadDashboardData();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAddModalOpen || editingProduct) {
+      fetchCollections();
+      fetchCategories();
+    }
+  }, [isAddModalOpen, editingProduct]);
 
   // Image Upload helper for specific slot
   const handleSlotImageUpload = async (e, index, mode = 'create') => {
@@ -1107,6 +1260,7 @@ export const AdminDashboard = () => {
       await axios.post(`${API_BASE_URL}/products`, {
         name: newProduct.name,
         category: newProduct.category,
+        collection: newProduct.collection || '',
         price: parseFloat(newProduct.price),
         discount: parseInt(newProduct.discount) || 0,
         stock: parseInt(newProduct.stock),
@@ -1129,6 +1283,7 @@ export const AdminDashboard = () => {
       setNewProduct({
         name: '',
         category: 'Rings',
+        collection: '',
         price: '',
         discount: 0,
         stock: '',
@@ -1328,6 +1483,16 @@ export const AdminDashboard = () => {
                 Products
               </button>
               <button
+                onClick={() => handleTabChange('collections')}
+                className={`pb-3 px-3 md:px-4 text-xs md:text-sm border-b-2 transition-all ${
+                  activeTab === 'collections'
+                    ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
+                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                }`}
+              >
+                Collections
+              </button>
+              <button
                 onClick={() => handleTabChange('orders')}
                 className={`pb-3 px-3 md:px-4 text-xs md:text-sm border-b-2 transition-all ${
                   activeTab === 'orders'
@@ -1397,7 +1562,83 @@ export const AdminDashboard = () => {
               </button>
             </div>
 
+            {/* TAB CONTENT AREAS */}
             <Suspense fallback={<TabLoadingFallback />}>
+              {renderCollectionsTab = () => (
+                <div className="w-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                      <h3 className="text-base font-extrabold flex items-center gap-2">
+                        <span>Collection Management</span>
+                        <span className="px-2.5 py-1 text-xs bg-[#D4A75F] text-[#111827] rounded-full font-bold shadow-sm">
+                          {collectionsList.length}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">Manage database-driven collections for homepage lookbook and product dropdowns.</p>
+                    </div>
+                    <button
+                      onClick={handleOpenAddCollection}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add New Collection</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {collectionsList.map((coll, idx) => (
+                      <div key={coll.id || idx} className="border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-955/20 rounded-2xl p-4.5 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+                        <div>
+                          <div className="flex gap-4 mb-3">
+                            <div className="h-16 w-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 flex-shrink-0">
+                              <img src={coll.image || coll.image_url || '/cat_bridal.png'} alt={coll.name} className="h-full w-full object-cover" />
+                            </div>
+                            <div className="flex flex-col justify-center min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate" title={coll.name}>{coll.name}</h4>
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-amber-500/10 text-[#D4A75F] rounded-md">Order #{coll.display_order}</span>
+                              </div>
+                              {coll.subtitle && <p className="text-xs text-[#D4A75F] font-semibold truncate mt-0.5">{coll.subtitle}</p>}
+                              <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">{coll.description || 'No description provided.'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCollection(coll.id)}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                              coll.is_active !== false 
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700'
+                            }`}
+                          >
+                            {coll.is_active !== false ? '● Active' : '○ Disabled'}
+                          </button>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditCollection(coll)}
+                              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all cursor-pointer"
+                              title="Edit Collection"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCollection(coll.id, coll.name)}
+                              className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl transition-all cursor-pointer"
+                              title="Delete Collection"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {activeTab === 'overview' && (
                 <AnalyticsTab
                   loadDashboardData={loadDashboardData}
@@ -1433,6 +1674,8 @@ export const AdminDashboard = () => {
                   handleOpenAnalyticsModal={handleOpenAnalyticsModal}
                 />
               )}
+
+              {activeTab === 'collections' && renderCollectionsTab()}
 
               {(activeTab === 'orders' || activeTab === 'buy-requests') && (
                 <OrderManagementTab
@@ -1625,11 +1868,36 @@ export const AdminDashboard = () => {
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                       className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-850 dark:text-slate-100"
                     >
-                      <option value="Rings">{translateCategory("Rings", editFormLang)}</option>
-                      <option value="Necklaces">{translateCategory("Necklaces", editFormLang)}</option>
-                      <option value="Earrings">{translateCategory("Earrings", editFormLang)}</option>
-                      <option value="Bracelets">{translateCategory("Bracelets", editFormLang)}</option>
-                      <option value="Bridal Collection">{translateCategory("Bridal Collection", editFormLang)}</option>
+                      {categoriesList && categoriesList.length > 0 ? (
+                        categoriesList.map(cat => (
+                          <option key={cat.id || cat.name} value={cat.name}>
+                            {translateCategory(cat.name, editFormLang)}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Rings">{translateCategory("Rings", editFormLang)}</option>
+                          <option value="Necklaces">{translateCategory("Necklaces", editFormLang)}</option>
+                          <option value="Earrings">{translateCategory("Earrings", editFormLang)}</option>
+                          <option value="Bracelets">{translateCategory("Bracelets", editFormLang)}</option>
+                          <option value="Bridal Collection">{translateCategory("Bridal Collection", editFormLang)}</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Collection */}
+                  <div className="col-span-2 md:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Collection</label>
+                    <select
+                      value={editingProduct.collection || ''}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, collection: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-850 dark:text-slate-100"
+                    >
+                      <option value="">No Collection</option>
+                      {collectionsList.map(c => (
+                        <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -1890,11 +2158,36 @@ export const AdminDashboard = () => {
                       onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                       className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-850 dark:text-slate-100"
                     >
-                      <option value="Rings">{translateCategory("Rings", formLang)}</option>
-                      <option value="Necklaces">{translateCategory("Necklaces", formLang)}</option>
-                      <option value="Earrings">{translateCategory("Earrings", formLang)}</option>
-                      <option value="Bracelets">{translateCategory("Bracelets", formLang)}</option>
-                      <option value="Bridal Collection">{translateCategory("Bridal Collection", formLang)}</option>
+                      {categoriesList && categoriesList.length > 0 ? (
+                        categoriesList.map(cat => (
+                          <option key={cat.id || cat.name} value={cat.name}>
+                            {translateCategory(cat.name, formLang)}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Rings">{translateCategory("Rings", formLang)}</option>
+                          <option value="Necklaces">{translateCategory("Necklaces", formLang)}</option>
+                          <option value="Earrings">{translateCategory("Earrings", formLang)}</option>
+                          <option value="Bracelets">{translateCategory("Bracelets", formLang)}</option>
+                          <option value="Bridal Collection">{translateCategory("Bridal Collection", formLang)}</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Collection */}
+                  <div className="col-span-2 md:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Collection</label>
+                    <select
+                      value={newProduct.collection || ''}
+                      onChange={(e) => setNewProduct({ ...newProduct, collection: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-850 dark:text-slate-100"
+                    >
+                      <option value="">No Collection</option>
+                      {collectionsList.map(c => (
+                        <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -2393,6 +2686,144 @@ export const AdminDashboard = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / EDIT COLLECTION MODAL OVERLAY */}
+      {collectionModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-150 dark:border-slate-850">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-[#D4A75F]" />
+                <h3 className="text-sm font-extrabold text-slate-850 dark:text-slate-100">
+                  {editingCollection ? 'Edit Collection' : 'Add New Collection'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setCollectionModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCollectionFormSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs">
+                {/* Collection Name */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Collection Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={collectionForm.name}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, name: e.target.value })}
+                    placeholder="e.g. Festive Wear, Temple Jewellery"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+
+                {/* Subtitle */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Collection Subtitle</label>
+                  <input
+                    type="text"
+                    value={collectionForm.subtitle}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, subtitle: e.target.value })}
+                    placeholder="e.g. Regal Heritage Kundan & Polki"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</label>
+                  <textarea
+                    rows="3"
+                    value={collectionForm.description}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, description: e.target.value })}
+                    placeholder="Brief description of this collection..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 resize-none"
+                  />
+                </div>
+
+                {/* Image URL & Upload */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Collection Image</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={collectionForm.image}
+                      onChange={(e) => setCollectionForm({ ...collectionForm, image: e.target.value })}
+                      placeholder="Image URL or upload file"
+                      className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100"
+                    />
+                    <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 flex-shrink-0">
+                      {uploadingCollectionImage ? (
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border border-t-transparent border-slate-500" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" onChange={handleCollectionImageUpload} className="hidden" disabled={uploadingCollectionImage} />
+                    </label>
+                  </div>
+                  {collectionForm.image && (
+                    <div className="mt-2 h-20 w-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                      <img src={collectionForm.image} alt="Preview" className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Display Order & Active Switch */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Display Order</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={collectionForm.display_order}
+                      onChange={(e) => setCollectionForm({ ...collectionForm, display_order: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-center">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Status</label>
+                    <label className="inline-flex items-center cursor-pointer gap-2">
+                      <input
+                        type="checkbox"
+                        checked={collectionForm.is_active}
+                        onChange={(e) => setCollectionForm({ ...collectionForm, is_active: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        {collectionForm.is_active ? 'Active' : 'Disabled'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-955 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCollectionModalOpen(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+                >
+                  {editingCollection ? 'Save Changes' : 'Create Collection'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
