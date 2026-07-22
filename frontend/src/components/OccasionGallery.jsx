@@ -4,7 +4,7 @@ import { ChevronUp, X, Heart, Sparkles } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 
 // 3D Parallax & Magnetic Card component for Occasion
-const ParallaxOccasionCard = ({ item, onExpand, index }) => {
+const ParallaxOccasionCard = ({ item, onExpand, onCollectionClick, index }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
@@ -56,7 +56,13 @@ const ParallaxOccasionCard = ({ item, onExpand, index }) => {
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={() => onExpand(item)}
+      onClick={() => {
+        if (onCollectionClick) {
+          onCollectionClick(item.title);
+        } else if (onExpand) {
+          onExpand(item);
+        }
+      }}
       className="relative w-[260px] sm:w-[330px] aspect-[9/14] rounded-2xl overflow-hidden cursor-pointer group border border-slate-200/40 dark:border-slate-800/80 bg-slate-900 shadow-md hover:shadow-2xl transition-shadow duration-350 select-none flex-shrink-0 no-zoom"
     >
       {/* Background Image with Parallax Offset */}
@@ -104,20 +110,20 @@ const ParallaxOccasionCard = ({ item, onExpand, index }) => {
   );
 };
 
-export const OccasionGallery = ({ items: propItems }) => {
+export const OccasionGallery = ({ items: propItems, activeCollection, onCollectionClick }) => {
   const { language } = useTranslation();
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Occasions Lookbook Data
+  // Collection Lookbook Data
   const defaultItems = {
     en: [
       {
         id: 1,
-        title: "Date Night",
-        subtitle: "Elegance & Layered Statements",
-        image: "/cat_necklaces.png",
-        description: "Perfect combinations of layered gold chains, subtle collar necklaces, and delicate hoops. Crafted to make statement memories under candlelit tables.",
-        tips: ["Pair with solid dark necklines to highlight gold textures.", "Layer 2-3 chains of varying lengths.", "Keep earrings minimal if layering necklaces."]
+        title: "New Collection",
+        subtitle: "Fresh Masterpieces & Solitaires",
+        image: "/luxury_solitaire_ring.png",
+        description: "Discover our latest exquisite handcrafted arrivals featuring modern solitaire designs and signature gold craft.",
+        tips: ["Pair with classic ensembles to stand out.", "Explore solitaire diamonds for timeless brilliance.", "Perfect as a memorable gift for special milestones."]
       },
       {
         id: 2,
@@ -142,20 +148,28 @@ export const OccasionGallery = ({ items: propItems }) => {
         image: "/cat_bracelets.png",
         description: "Comfortable, durable, yet elegant gold bands and bracelets. Built for regular wear while retaining luxurious gold textures.",
         tips: ["Mix different gold karats for unique color play.", "Opt for smooth, snag-free lock styles.", "Great for layering alongside wristwatches."]
+      },
+      {
+        id: 5,
+        title: "Date Night",
+        subtitle: "Elegance & Layered Statements",
+        image: "/cat_necklaces.png",
+        description: "Perfect combinations of layered gold chains, subtle collar necklaces, and delicate hoops. Crafted to make statement memories under candlelit tables.",
+        tips: ["Pair with solid dark necklines to highlight gold textures.", "Layer 2-3 chains of varying lengths.", "Keep earrings minimal if layering necklaces."]
       }
     ],
     hi: [
       {
         id: 1,
-        title: "डिनर डेट",
-        subtitle: "लालित्य और लेयर्ड आभूषण",
-        image: "/cat_necklaces.png",
-        description: "लेयर्ड सोने की जंजीरों, सूक्ष्म कॉलर हार और नाजुक हुप्स का सही संयोजन। मोमबत्ती की रोशनी में सुखद यादें बनाने के लिए डिज़ाइन किया गया।",
-        tips: ["सोने की बनावट को उभारने के लिए गहरे रंग के कपड़ों के साथ पहनें।", "अलग-अलग लंबाई की 2-3 चेन लेयर करें।", "हार लेयर करते समय झुमके हल्के रखें।"]
+        title: "New Collection",
+        subtitle: "नवीनतम संग्रह एवं सॉलिटेयर डायमंड",
+        image: "/luxury_solitaire_ring.png",
+        description: "हमारे नवीनतम उत्कृष्ट हस्तनिर्मित आभूषणों और सॉलिटेयर डिज़ाइनों की खोज करें।",
+        tips: ["सुंदर लुक के लिए क्लासिक पहनावे के साथ पहनें।", "सदाबहार चमक के लिए सॉलिटेयर हीरे चुनें।", "विशेष अवसरों के लिए आदर्श उपहार।"]
       },
       {
         id: 2,
-        title: "शादी विवाह",
+        title: "Wedding Wear",
         subtitle: "शाही विरासत कुंदन",
         image: "/cat_bridal.png",
         description: "कढ़ाई वाले परिधानों के साथ चोकर-लंबाई वाले सेट पहनें। क्लासिक लुक के लिए मांग-टीका के साथ स्टाइल करें।",
@@ -163,7 +177,7 @@ export const OccasionGallery = ({ items: propItems }) => {
       },
       {
         id: 3,
-        title: "ऑफिस वियर",
+        title: "Office Wear",
         subtitle: "न्यूनतम लक्जरी स्टड्स",
         image: "/cat_earrings.png",
         description: "ठाठ, हल्के और आधुनिक दैनिक-पहनने वाले आभूषण। कार्यकारी आत्मविश्वास के लिए सुरुचिपूर्ण सॉलिटेयर रिंग, स्टड्स और चिकनी ब्रेसलेट।",
@@ -171,11 +185,19 @@ export const OccasionGallery = ({ items: propItems }) => {
       },
       {
         id: 4,
-        title: "दैनिक पहनावा",
+        title: "Daily Wear",
         subtitle: "बहुमुखी ब्रेसलेट",
         image: "/cat_bracelets.png",
         description: "आरामदायक, टिकाऊ, फिर भी सुरुचिपूर्ण सोने के छल्ले और कंगन। शानदार बनावट के साथ नियमित रूप से पहनने के लिए उपयुक्त।",
         tips: ["अनोखे लुक के लिए सोने के विभिन्न रंगों को मिलाएं।", "स्मूथ और सुरक्षित लॉक स्टाइल चुनें।", "कलाई घड़ी के साथ लेयरिंग के लिए बेहतरीन।"]
+      },
+      {
+        id: 5,
+        title: "Date Night",
+        subtitle: "लालित्य और लेयर्ड आभूषण",
+        image: "/cat_necklaces.png",
+        description: "लेयर्ड सोने की जंजीरों, सूक्ष्म कॉलर हार और नाजुक हुप्स का सही संयोजन। मोमबत्ती की रोशनी में सुखद यादें बनाने के लिए डिज़ाइन किया गया।",
+        tips: ["सोने की बनावट को उभारने के लिए गहरे रंग के कपड़ों के साथ पहनें।", "अलग-अलग लंबाई की 2-3 चेन लेयर करें।", "हार लेयर करते समय झुमके हल्के रखें।"]
       }
     ]
   };
@@ -211,11 +233,11 @@ export const OccasionGallery = ({ items: propItems }) => {
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-[#D4A75F] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4"
         >
           <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-          {language === 'hi' ? 'अवसर के अनुसार लुकबुक' : 'Shop by Occasion'}
+          {language === 'hi' ? 'संग्रह के अनुसार खरीदें' : 'Shop by Collection'}
         </motion.div>
         
         <h2 className="text-2xl sm:text-4xl font-serif font-bold text-[#3F1D5A] dark:text-[#EFE7DB] tracking-wide">
-          {language === 'hi' ? 'हर अवसर के लिए विशेष स्टाइल' : 'Styling Curated for Every Occasion'}
+          {language === 'hi' ? 'हर संग्रह के लिए विशेष स्टाइल' : 'Styling Curated for Every Collection'}
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 max-w-xl mx-auto">
           {language === 'hi' 
@@ -234,6 +256,7 @@ export const OccasionGallery = ({ items: propItems }) => {
               key={`${item.id}-${index}`} 
               item={item} 
               onExpand={setSelectedItem} 
+              onCollectionClick={onCollectionClick}
               index={index} 
             />
           ))}

@@ -939,6 +939,94 @@ const parseJsonSafe = (str, fallback) => {
   }
 };
 
+const matchesCollection = (product, collectionName) => {
+  if (!collectionName || collectionName === 'All') return true;
+  if (!product) return false;
+
+  const target = collectionName.toLowerCase().trim();
+
+  if (product.collection && String(product.collection).toLowerCase().includes(target)) return true;
+  if (product.occasion && String(product.occasion).toLowerCase().includes(target)) return true;
+
+  const searchFields = [
+    product.name,
+    product.description,
+    product.category,
+    product.name_en,
+    product.name_hi,
+    product.description_en,
+    product.description_hi,
+    product.features_en,
+    product.features_hi,
+    product.specifications_en,
+    product.specifications_hi
+  ].filter(Boolean).map(s => String(s).toLowerCase());
+
+  const fullText = searchFields.join(' ');
+
+  if (target.includes('wedding') || target.includes('शादी')) {
+    return (
+      fullText.includes('wedding') ||
+      fullText.includes('bridal') ||
+      fullText.includes('kundan') ||
+      fullText.includes('dulhan') ||
+      fullText.includes('shaadi') ||
+      fullText.includes('royal') ||
+      fullText.includes('choker') ||
+      fullText.includes('heavy') ||
+      fullText.includes('polki') ||
+      fullText.includes('gold')
+    );
+  }
+
+  if (target.includes('office') || target.includes('ऑफिस')) {
+    return (
+      fullText.includes('office') ||
+      fullText.includes('stud') ||
+      fullText.includes('minimal') ||
+      fullText.includes('sleek') ||
+      fullText.includes('daily') ||
+      fullText.includes('light') ||
+      fullText.includes('work') ||
+      fullText.includes('solitaire') ||
+      fullText.includes('earring')
+    );
+  }
+
+  if (target.includes('daily') || target.includes('दैनिक')) {
+    return (
+      fullText.includes('daily') ||
+      fullText.includes('bangle') ||
+      fullText.includes('chain') ||
+      fullText.includes('ring') ||
+      fullText.includes('simple') ||
+      fullText.includes('comfort') ||
+      fullText.includes('casual') ||
+      fullText.includes('bracelet')
+    );
+  }
+
+  if (target.includes('date') || target.includes('डिनर')) {
+    return (
+      fullText.includes('date') ||
+      fullText.includes('night') ||
+      fullText.includes('necklace') ||
+      fullText.includes('layered') ||
+      fullText.includes('pendant') ||
+      fullText.includes('diamond') ||
+      fullText.includes('heart') ||
+      fullText.includes('fancy')
+    );
+  }
+
+  if (target.includes('new') || target.includes('नया')) {
+    return true;
+  }
+
+  const keywords = target.split(/\s+/);
+  return keywords.some(kw => fullText.includes(kw));
+};
+
 export const Home = () => {
   const { language, isAdmin } = useContext(AuthContext);
 
@@ -1234,6 +1322,7 @@ export const Home = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') || 'All';
+  const activeCollection = searchParams.get('collection') || searchParams.get('occasion') || 'All';
   const activeSearch = searchParams.get('search') || '';
 
   const handleCategoryClick = useCallback((categoryName, source = 'grid') => {
@@ -1252,6 +1341,32 @@ export const Home = () => {
         allProductsHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
+  }, [searchParams, setSearchParams]);
+
+  const handleCollectionClick = useCallback((collectionName) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (collectionName === 'All') {
+      newParams.delete('collection');
+      newParams.delete('occasion');
+    } else {
+      newParams.set('collection', collectionName);
+    }
+    setSearchParams(newParams, { preventScrollReset: true });
+
+    setTimeout(() => {
+      const allProductsHeading = document.getElementById('all-products-heading');
+      if (allProductsHeading) {
+        allProductsHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }, [searchParams, setSearchParams]);
+
+  const handleClearAllFilters = useCallback(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('category');
+    newParams.delete('collection');
+    newParams.delete('occasion');
+    setSearchParams(newParams, { preventScrollReset: true });
   }, [searchParams, setSearchParams]);
 
   // Banner Management States
@@ -1602,9 +1717,15 @@ export const Home = () => {
         }
 
         const response = await axios.get(url);
-        setProducts(response.data);
+        let fetchedData = response.data || [];
 
-        // Fetch all products (filtered by category if selected, but NOT by search query) if searching
+        if (activeCollection && activeCollection !== 'All') {
+          fetchedData = fetchedData.filter(p => matchesCollection(p, activeCollection));
+        }
+
+        setProducts(fetchedData);
+
+        // Fetch all products (filtered by category/collection if selected, but NOT by search query) if searching
         if (activeSearch) {
           setAllProductsLoading(true);
           let allUrl = `${API_BASE_URL}/products`;
@@ -1612,7 +1733,11 @@ export const Home = () => {
             allUrl += `?category=${encodeURIComponent(activeCategory)}`;
           }
           const allResponse = await axios.get(allUrl);
-          setAllProducts(allResponse.data);
+          let allFetched = allResponse.data || [];
+          if (activeCollection && activeCollection !== 'All') {
+            allFetched = allFetched.filter(p => matchesCollection(p, activeCollection));
+          }
+          setAllProducts(allFetched);
           setAllProductsLoading(false);
         } else {
           setAllProducts([]);
@@ -1626,7 +1751,7 @@ export const Home = () => {
     };
 
     fetchProducts();
-  }, [activeCategory, activeSearch, language, refreshTrigger]);
+  }, [activeCategory, activeCollection, activeSearch, language, refreshTrigger]);
 
   const isAdminAddressEmpty = !addUserForm.address?.trim() && !addUserForm.city?.trim() && !addUserForm.state?.trim() && !addUserForm.pincode?.trim();
   const isAdminPincodeInvalid = isAdminAddressEmpty ? false : addUserForm.pincode?.trim().length !== 6;
@@ -1651,7 +1776,7 @@ export const Home = () => {
         <SearchSpotlight products={products} language={language} />
       )}
 
-      {!activeSearch && (
+      {!activeSearch && activeCategory === 'All' && (
         <CategoryGrid 
           activeCategory={activeCategory} 
           loading={loading} 
@@ -1702,9 +1827,13 @@ export const Home = () => {
                 <h2 className="text-2xl font-extrabold tracking-tight">
                   {activeSearch 
                     ? (language === 'hi' ? `"${activeSearch}" के लिए खोज परिणाम` : `Search Results for "${activeSearch}"`)
-                    : (activeCategory === 'All' 
-                        ? translateUiLabel("All Products", language) 
-                        : `${translateCategory(activeCategory, language)} ${language === 'hi' ? 'उत्पाद' : 'Products'}`
+                    : (activeCategory !== 'All' && activeCollection !== 'All'
+                        ? `${translateCategory(activeCategory, language)} - ${activeCollection}`
+                        : activeCategory !== 'All'
+                          ? `${translateCategory(activeCategory, language)} ${language === 'hi' ? 'उत्पाद' : 'Products'}`
+                          : activeCollection !== 'All'
+                            ? `${activeCollection} Collection`
+                            : translateUiLabel("All Products", language)
                       )
                   }
                 </h2>
@@ -1714,16 +1843,48 @@ export const Home = () => {
               </>
             )}
           </div>
-          <div className="flex items-center gap-4 mt-4 sm:mt-0 self-end sm:self-auto relative">
+          <div className="flex items-center gap-4 mt-4 sm:mt-0 self-end sm:self-auto relative flex-wrap">
             {activeCategory !== 'All' && activeTab === 'products' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#D4A75F]/15 text-[#D4A75F] border border-[#D4A75F]/30">
+                Category: {translateCategory(activeCategory, language)}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCategoryClick('All');
+                  }}
+                  className="hover:text-red-500 font-bold ml-1 cursor-pointer"
+                  title="Remove Category Filter"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            {activeCollection !== 'All' && activeTab === 'products' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#D4A75F]/15 text-[#D4A75F] border border-[#D4A75F]/30">
+                Collection: {activeCollection}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCollectionClick('All');
+                  }}
+                  className="hover:text-red-500 font-bold ml-1 cursor-pointer"
+                  title="Remove Collection Filter"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+
+            {(activeCategory !== 'All' || activeCollection !== 'All') && activeTab === 'products' && (
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  handleCategoryClick('All');
+                  handleClearAllFilters();
                 }}
-                className="text-xs text-[#D4A75F] hover:text-[#B38F4B] hover:underline font-bold transition-colors"
+                className="text-xs text-[#D4A75F] hover:text-[#B38F4B] hover:underline font-bold transition-colors cursor-pointer"
               >
-                Clear filters
+                Clear all filters
               </button>
             )}
 
@@ -1776,11 +1937,11 @@ export const Home = () => {
             <button
               onClick={(e) => {
                 e.preventDefault();
-                handleCategoryClick('All');
+                handleClearAllFilters();
               }}
-              className="mt-6 px-5 py-2 bg-[#D4A75F] hover:bg-[#B38F4B] text-white rounded-xl text-xs font-bold shadow-md transition-colors"
+              className="mt-6 px-5 py-2 bg-[#D4A75F] hover:bg-[#B38F4B] text-white rounded-xl text-xs font-bold shadow-md transition-colors cursor-pointer"
             >
-              View All Products
+              Clear All Filters
             </button>
           </div>
         )}
@@ -1788,7 +1949,7 @@ export const Home = () => {
         {/* Product Grid (No Search) */}
         {activeTab === 'products' && !activeSearch && !loading && !error && products.length > 0 && (
           <motion.div
-            key={activeCategory}
+            key={`${activeCategory}-${activeCollection}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
@@ -1816,7 +1977,7 @@ export const Home = () => {
               </div>
             ) : (
               <motion.div
-                key={`search-${activeCategory}`}
+                key={`search-${activeCategory}-${activeCollection}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
@@ -1884,7 +2045,13 @@ export const Home = () => {
       {!activeSearch && activeTab === 'products' && (
         <>
           <LuxuryGallery items={siteSettings.luxury_gallery_items} />
-          <OccasionGallery items={parseJsonSafe(language === 'hi' ? siteSettings.occasion_items_hi : siteSettings.occasion_items_en, null)} />
+          {activeCollection === 'All' && (
+            <OccasionGallery 
+              items={parseJsonSafe(language === 'hi' ? siteSettings.occasion_items_hi : siteSettings.occasion_items_en, null)}
+              activeCollection={activeCollection}
+              onCollectionClick={handleCollectionClick}
+            />
+          )}
           <TrustShowcase />
           <GoldCalculator />
           <VideoShowcase url={siteSettings.video_showcase_url} />
