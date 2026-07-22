@@ -31,7 +31,7 @@ def safe_print(*args, **kwargs):
 builtins.print = safe_print
 
 from backend.extensions import db, migrate, mail
-from backend.config import Config
+from backend.config import Config, validate_environment, FRONTEND_URL
 from backend.routes.auth import auth_bp
 from backend.routes.products import products_bp
 from backend.routes.orders import orders_bp
@@ -41,6 +41,11 @@ from backend.routes.coupons import coupons_bp
 from backend.routes.banners import banners_bp
 from backend.routes.collections import collections_bp
 from backend.routes.gold_rate import gold_rate_bp
+from backend.routes.maintenance import maintenance_bp
+from backend.middleware.maintenance import check_maintenance_mode
+
+# Run startup environment validation
+validate_environment()
 
 app = Flask(__name__)
 # Load configuration
@@ -51,6 +56,9 @@ CORS(app)
 
 # Allow flexible trailing slashes across all blueprint routes
 app.url_map.strict_slashes = False
+
+# Register before_request maintenance middleware handler
+app.before_request(check_maintenance_mode)
 
 # Initialize extensions
 db.init_app(app)
@@ -67,6 +75,7 @@ app.register_blueprint(coupons_bp, url_prefix='/api/coupons')
 app.register_blueprint(banners_bp, url_prefix='/api/banners')
 app.register_blueprint(collections_bp, url_prefix='/api/collections')
 app.register_blueprint(gold_rate_bp, url_prefix='/api/gold-rate')
+app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
 
 from flask import request
 from backend.utils.helpers import generate_otp, verify_otp, is_valid_email
@@ -372,5 +381,5 @@ with app.app_context():
         print("[APP] Gold rate scheduler error:", err)
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 5005))
     app.run(host='0.0.0.0', port=port, debug=False)

@@ -8,6 +8,7 @@ import {
   Settings, Globe, Link as LinkIcon
 } from 'lucide-react';
 import { AuthContext, API_BASE_URL, SERVER_BASE_URL } from '../context/AuthContext';
+import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
 
@@ -245,6 +246,17 @@ export const AdminControl = () => {
   };
 
   const [collectionsList, setCollectionsList] = useState([]);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [collectionForm, setCollectionForm] = useState({
+    name: '',
+    subtitle: '',
+    description: '',
+    image: '',
+    display_order: 0,
+    is_active: true
+  });
+  const [uploadingCollectionImage, setUploadingCollectionImage] = useState(false);
 
   // Add Product form state
   const [newProduct, setNewProduct] = useState({
@@ -277,6 +289,8 @@ export const AdminControl = () => {
   const [returnNotes, setReturnNotes] = useState({});
 
   // Quick Action States
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [selectedStockProduct, setSelectedStockProduct] = useState(null);
   const [stockAdjustmentAction, setStockAdjustmentAction] = useState('set');
   const [stockAdjustmentValue, setStockAdjustmentValue] = useState('');
@@ -810,6 +824,102 @@ export const AdminControl = () => {
       }
     } catch (err) {
       console.error("Error fetching collections:", err);
+    }
+  };
+
+  const handleOpenAddCollection = () => {
+    setEditingCollection(null);
+    setCollectionForm({
+      name: '',
+      subtitle: '',
+      description: '',
+      image: '',
+      display_order: collectionsList.length + 1,
+      is_active: true
+    });
+    setCollectionModalOpen(true);
+  };
+
+  const handleOpenEditCollection = (coll) => {
+    setEditingCollection(coll);
+    setCollectionForm({
+      name: coll.name || '',
+      subtitle: coll.subtitle || '',
+      description: coll.description || '',
+      image: coll.image || coll.image_url || '',
+      display_order: coll.display_order || 0,
+      is_active: coll.is_active !== false
+    });
+    setCollectionModalOpen(true);
+  };
+
+  const handleCollectionFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!collectionForm.name.trim()) {
+      alert("Collection Name is required.");
+      return;
+    }
+    const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    try {
+      if (editingCollection) {
+        await axios.put(`${API_BASE_URL}/admin/collections/${editingCollection.id}`, collectionForm, { headers });
+      } else {
+        await axios.post(`${API_BASE_URL}/admin/collections`, collectionForm, { headers });
+      }
+      setCollectionModalOpen(false);
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to save collection.");
+    }
+  };
+
+  const handleDeleteCollection = async (collId, collName) => {
+    if (!window.confirm(`Are you sure you want to delete collection '${collName}'?`)) return;
+    const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+    try {
+      await axios.delete(`${API_BASE_URL}/admin/collections/${collId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to delete collection.");
+    }
+  };
+
+  const handleToggleCollection = async (collId) => {
+    const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+    try {
+      await axios.put(`${API_BASE_URL}/admin/collections/${collId}/toggle`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to toggle collection state.");
+    }
+  };
+
+  const handleCollectionImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCollectionImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/products/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setCollectionForm(prev => ({ ...prev, image: res.data.url }));
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload image.");
+    } finally {
+      setUploadingCollectionImage(false);
     }
   };
 
@@ -1350,8 +1460,8 @@ export const AdminControl = () => {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250">Customer Management Panel</h4>
-              <p className="text-xs text-slate-400">Total Registered Users: {users.length}</p>
+              <h4 className="text-sm font-extrabold text-slate-800 dark:text-white">Customer Management Panel</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-300 font-medium">Total Registered Users: {users.length}</p>
             </div>
           </div>
           <div className="relative w-full sm:w-72">
@@ -2193,15 +2303,28 @@ export const AdminControl = () => {
 
   // Delete Product
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-
     try {
       await axios.delete(`${API_BASE_URL}/products/${id}`);
-      fetchProducts();
-      fetchStats();
+      setProducts(prev => prev.filter(p => (p._id || p.id) !== id));
+      if (typeof fetchProducts === 'function') fetchProducts();
+      if (typeof fetchStats === 'function') fetchStats();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete product.");
+      console.error("Failed to delete product:", err);
+      throw err;
+    }
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeletingProduct(true);
+    try {
+      await handleDeleteProduct(productToDelete._id || productToDelete.id);
+      setProductToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+      alert("Failed to delete product. Please try again.");
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
@@ -2321,6 +2444,112 @@ export const AdminControl = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* SECTION: COLLECTION MANAGEMENT */}
+        <div className="bg-white dark:bg-[#151D2A] border border-slate-200/80 dark:border-white/10 rounded-[24px] p-6 sm:p-8 shadow-[0_4px_25px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)] my-8 space-y-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-white/10 pb-6">
+            <div>
+              <h4 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-3">
+                <span>Collection Management</span>
+                <span className="px-3 py-0.5 text-xs font-bold bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 rounded-full shadow-sm">
+                  {collectionsList.length}
+                </span>
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                Manage database-driven collections for homepage lookbook and product dropdowns.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddCollection}
+              className="px-5 py-2.5 bg-[#5B2A86] hover:bg-[#6c329d] text-white text-xs font-bold rounded-full shadow-lg shadow-[#5B2A86]/25 hover:shadow-[#D4AF37]/30 hover:ring-2 hover:ring-[#D4AF37]/50 transition-all duration-250 ease-in-out flex items-center gap-2 cursor-pointer group"
+            >
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 duration-300" />
+              <span>Add New Collection</span>
+            </button>
+          </div>
+
+          {collectionsList.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-xs sm:text-sm font-medium">
+              No collections found in database. Click "Add New Collection" to create one.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {collectionsList.map((coll, idx) => (
+                <div
+                  key={coll.id || idx}
+                  className="bg-white dark:bg-[#1A2235] border border-slate-200/80 dark:border-white/10 hover:border-[#D4AF37]/60 dark:hover:border-[#D4AF37]/60 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_28px_rgba(212,175,55,0.12)] hover:-translate-y-1 transition-all duration-250 ease-in-out group"
+                >
+                  <div>
+                    <div className="flex justify-between items-center gap-2 mb-4">
+                      <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 rounded-full">
+                        Order #{coll.display_order}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-4 mb-4">
+                      <div className="h-20 w-20 sm:h-22 sm:w-22 rounded-[16px] overflow-hidden bg-slate-100 dark:bg-[#0F172A] border border-slate-200/60 dark:border-white/10 flex-shrink-0 shadow-sm">
+                        <img
+                          src={coll.image || coll.image_url || '/cat_bridal.png'}
+                          alt={coll.name}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { e.target.src = '/cat_bridal.png'; }}
+                        />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0 flex-1">
+                        <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-[#D4AF37] transition-colors" title={coll.name}>
+                          {coll.name}
+                        </h4>
+                        {coll.subtitle && (
+                          <p className="text-xs text-[#D4AF37] font-semibold truncate mt-0.5">
+                            {coll.subtitle}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 mt-2 font-normal">
+                          {coll.description || 'No description provided.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-white/10 flex items-center justify-between mt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCollection(coll.id)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all duration-200 flex items-center gap-2 cursor-pointer border ${
+                        coll.is_active !== false 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/50' 
+                          : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700/60'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${coll.is_active !== false ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                      <span>{coll.is_active !== false ? 'Active' : 'Disabled'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditCollection(coll)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-white transition-all duration-200 cursor-pointer shadow-sm"
+                        title="Edit Collection"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCollection(coll.id, coll.name)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-rose-200 dark:border-rose-900/40 text-rose-500 bg-rose-50/50 dark:bg-rose-955/30 hover:bg-rose-600 hover:border-rose-600 hover:text-white transition-all duration-200 cursor-pointer shadow-sm"
+                        title="Delete Collection"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* SECTION 2: FOUNDER / OWNER SHOWCASE */}
@@ -2839,232 +3068,6 @@ export const AdminControl = () => {
             </button>
           </div>
         </form>
-
-        {/* SECTION 5: OCCASION GALLERY LOOKBOOK */}
-        <form onSubmit={handleSaveHomepageSettings} className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="text-lg font-bold text-slate-850 dark:text-slate-100">Collections</h4>
-              <p className="text-xs text-slate-400">Configure the styling cards displayed in the "Styling Curated for Every Occasion" section.</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Add Occasion Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const newId = Date.now();
-                  const newCardEn = {
-                    id: newId,
-                    title: "New Occasion",
-                    subtitle: "Elegance & Style",
-                    image: "/cat_necklaces.png",
-                    description: "Enter English description.",
-                    tips: ["Tip 1", "Tip 2", "Tip 3"]
-                  };
-                  const newCardHi = {
-                    id: newId,
-                    title: "नया अवसर",
-                    subtitle: "लालित्य और शैली",
-                    image: "/cat_necklaces.png",
-                    description: "हिंदी विवरण दर्ज करें।",
-                    tips: ["सुझाव 1", "सुझाव 2", "सुझाव 3"]
-                  };
-                  setHomepageSettings(prev => ({
-                    ...prev,
-                    occasion_items_en: [...(prev.occasion_items_en || []), newCardEn],
-                    occasion_items_hi: [...(prev.occasion_items_hi || []), newCardHi]
-                  }));
-                }}
-                className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Occasion</span>
-              </button>
-
-              {/* Language Switcher */}
-              <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl w-fit border border-slate-200 dark:border-slate-850">
-                <button
-                  type="button"
-                  onClick={() => setActiveOccasionLang('en')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeOccasionLang === 'en'
-                      ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-650'
-                    }`}
-                >
-                  English Lookbook
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveOccasionLang('hi')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeOccasionLang === 'hi'
-                      ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-650'
-                    }`}
-                >
-                  Hindi Lookbook
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {((activeOccasionLang === 'en' ? homepageSettings.occasion_items_en : homepageSettings.occasion_items_hi) || []).map((card, idx) => (
-              <div key={card.id || idx} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/50 dark:bg-slate-955/20 space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
-                  <span className="text-xs font-black tracking-widest text-[#D4A75F] uppercase">Occasion Card #{idx + 1}</span>
-                  {((activeOccasionLang === 'en' ? homepageSettings.occasion_items_en : homepageSettings.occasion_items_hi) || []).length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this occasion?")) {
-                          const idToDelete = card.id;
-                          const updatedEn = (homepageSettings.occasion_items_en || []).filter(item => item.id !== idToDelete);
-                          const updatedHi = (homepageSettings.occasion_items_hi || []).filter(item => item.id !== idToDelete);
-                          setHomepageSettings(prev => ({
-                            ...prev,
-                            occasion_items_en: updatedEn,
-                            occasion_items_hi: updatedHi
-                          }));
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-955/20 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Card Image */}
-                  <div className="sm:col-span-1">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-1.5">Occasion Photo</label>
-                    <div className="relative w-full aspect-[9/12] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-850">
-                      {card.image ? (
-                        <>
-                          <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
-                          <label className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
-                            <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                              <Upload className="h-3 w-3" /> Change
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  handleUploadMediaFile(e.target.files[0], activeOccasionLang === 'en' ? 'occasion_en' : 'occasion_hi', idx);
-                                }
-                              }}
-                            />
-                          </label>
-                        </>
-                      ) : (
-                        <label className="cursor-pointer flex flex-col items-center justify-center p-4 text-slate-400">
-                          <Upload className="h-6 w-6 mb-1" />
-                          <span className="text-[10px] font-bold">Upload</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                handleUploadMediaFile(e.target.files[0], activeOccasionLang === 'en' ? 'occasion_en' : 'occasion_hi', idx);
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card Details */}
-                  <div className="sm:col-span-2 space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-1">Occasion Title</label>
-                      <input
-                        type="text"
-                        value={card.title || ''}
-                        onChange={(e) => {
-                          const field = activeOccasionLang === 'en' ? 'occasion_items_en' : 'occasion_items_hi';
-                          const updated = [...homepageSettings[field]];
-                          updated[idx].title = e.target.value;
-                          setHomepageSettings({ ...homepageSettings, [field]: updated });
-                        }}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-1">Occasion Subtitle</label>
-                      <input
-                        type="text"
-                        value={card.subtitle || ''}
-                        onChange={(e) => {
-                          const field = activeOccasionLang === 'en' ? 'occasion_items_en' : 'occasion_items_hi';
-                          const updated = [...homepageSettings[field]];
-                          updated[idx].subtitle = e.target.value;
-                          setHomepageSettings({ ...homepageSettings, [field]: updated });
-                        }}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-1">Description</label>
-                      <textarea
-                        rows={2}
-                        value={card.description || ''}
-                        onChange={(e) => {
-                          const field = activeOccasionLang === 'en' ? 'occasion_items_en' : 'occasion_items_hi';
-                          const updated = [...homepageSettings[field]];
-                          updated[idx].description = e.target.value;
-                          setHomepageSettings({ ...homepageSettings, [field]: updated });
-                        }}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500 resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Styling Tips */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-850 space-y-2">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Styling Tips (3 Tips)</span>
-                  <div className="space-y-2">
-                    {[0, 1, 2].map((tipIdx) => (
-                      <div key={tipIdx} className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#D4A75F] flex-shrink-0" />
-                        <input
-                          type="text"
-                          value={card.tips?.[tipIdx] || ''}
-                          onChange={(e) => {
-                            const field = activeOccasionLang === 'en' ? 'occasion_items_en' : 'occasion_items_hi';
-                            const updated = [...homepageSettings[field]];
-                            if (!updated[idx].tips) updated[idx].tips = ['', '', ''];
-                            updated[idx].tips[tipIdx] = e.target.value;
-                            setHomepageSettings({ ...homepageSettings, [field]: updated });
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-lg text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-850">
-            <button
-              type="submit"
-              disabled={homepageUpdating}
-              className="flex items-center gap-1.5 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
-            >
-              {homepageUpdating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              <span>Save Occasion Lookbook</span>
-            </button>
-          </div>
-        </form>
       </div>
     );
   };
@@ -3097,12 +3100,15 @@ export const AdminControl = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Admin Management Panel</h1>
             <p className="text-xs text-slate-400 mt-1">Perform product CRUD, modify user status, update orders, and review customer tickets.</p>
           </div>
-          <button
-            onClick={loadDashboardData}
-            className="mt-4 sm:mt-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-transparent dark:bg-[#1E1E1E] dark:border-[#D4A75F] text-slate-700 dark:text-[#D4A75F] dark:hover:bg-[#2A2A2A] rounded-[12px] dark:shadow-[0_4px_12px_rgba(212,167,95,0.25)] text-xs font-bold transition-all"
-          >
-            Refresh Data
-          </button>
+          <div className="mt-4 sm:mt-0 flex items-center gap-3">
+            <MaintenanceButton />
+            <button
+              onClick={loadDashboardData}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-transparent dark:bg-[#1E1E1E] dark:border-[#D4A75F] text-slate-700 dark:text-[#D4A75F] dark:hover:bg-[#2A2A2A] rounded-[12px] dark:shadow-[0_4px_12px_rgba(212,167,95,0.25)] text-xs font-bold transition-all"
+            >
+              Refresh Data
+            </button>
+          </div>
         </div>
 
         {/* Loading Spinner */}
@@ -3170,15 +3176,6 @@ export const AdminControl = () => {
                   }`}
               >
                 Product Management
-              </button>
-              <button
-                onClick={() => handleTabChange('collections')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'collections'
-                    ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
-                  }`}
-              >
-                Collections
               </button>
               <button
                 onClick={() => handleTabChange('users')}
@@ -3790,17 +3787,29 @@ export const AdminControl = () => {
                     };
 
                     return (
-                      <div key={p._id} className="border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/20 rounded-xl md:rounded-2xl p-3 md:p-4.5 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+                      <div key={p._id || p.id} className="border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/20 rounded-xl md:rounded-2xl p-3 md:p-4.5 flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
                         <div>
-                          {/* Product Image and Category */}
-                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-3">
-                            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex-shrink-0">
-                              <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'} alt="" className="h-full w-full object-cover" />
+                          {/* Product Image, Category and Delete Button Header Row */}
+                          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-3">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 flex-shrink-0">
+                                <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'} alt={p.name} className="h-full w-full object-cover" />
+                              </div>
+                              <div className="flex flex-col justify-center min-w-0 flex-1">
+                                <span className="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{p.category}</span>
+                                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5" title={p.name}>{p.name}</h4>
+                              </div>
                             </div>
-                            <div className="flex flex-col justify-center min-w-0">
-                              <span className="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{p.category}</span>
-                              <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5" title={p.name}>{p.name}</h4>
-                            </div>
+
+                            {/* Delete Product Button */}
+                            <button
+                              type="button"
+                              onClick={() => setProductToDelete(p)}
+                              title="Delete Product"
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/20 hover:scale-105 transition-all duration-200 cursor-pointer flex-shrink-0 z-30"
+                            >
+                              <Trash2 className="h-4 w-4 text-white" />
+                            </button>
                           </div>
 
                           {/* Price / Discount History */}
@@ -4969,176 +4978,172 @@ export const AdminControl = () => {
         {/* ORDER DETAILS MODAL OVERLAY */}
         {selectedOrder && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+              
+              {/* Modal Header */}
+              <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5 text-emerald-500" />
+                  <span>Order Details - #{selectedOrder.order_id}</span>
+                </h3>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-              <h3 className="text-lg font-black text-slate-850 dark:text-slate-100 mb-6 flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-emerald-500" />
-                <span>Order Details - #{selectedOrder.order_id}</span>
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-655 dark:text-slate-350">
-                {/* Customer and Shipping Details */}
-                <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
-                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Customer & Shipping Information</h4>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Name</span>
-                    <span className="text-slate-855 dark:text-slate-100 font-semibold">{selectedOrder.shipping_address?.name || "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</span>
-                    <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address?.phone || selectedOrder.shipping_address?.mobile || "N/A"}</span>
-                  </div>
-                  {selectedOrder.shipping_address?.alternate_mobile_number && (
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-655 dark:text-slate-350">
+                  {/* Customer and Shipping Details */}
+                  <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Customer & Shipping Information</h4>
                     <div>
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternate Mobile Number</span>
-                      <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address.alternate_mobile_number}</span>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Name</span>
+                      <span className="text-slate-855 dark:text-slate-100 font-semibold">{selectedOrder.shipping_address?.name || "N/A"}</span>
                     </div>
-                  )}
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Email</span>
-                    <span className="text-slate-855 dark:text-slate-100">{selectedOrder.user_email || "Not Available"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shipping Address</span>
-                    <span className="text-slate-855 dark:text-slate-100 leading-relaxed block">
-                      {selectedOrder.shipping_address?.address || selectedOrder.shipping_address?.street || "N/A"}<br />
-                      {selectedOrder.shipping_address?.city}, {selectedOrder.shipping_address?.state} - {selectedOrder.shipping_address?.pincode}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Order Status & Info */}
-                <div className="space-y-4 bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
-                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Order Meta Details</h4>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Date</span>
-                    <span className="text-slate-855 dark:text-slate-100 font-semibold">
-                      {formatTimestamp(selectedOrder.created_at)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Arrival</span>
-                    <span className="text-emerald-500 dark:text-white font-semibold">
-                      {selectedOrder.delivery_date || "Pending Dispatch"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border text-emerald-500 dark:text-white bg-emerald-500/10 border-emerald-500/20 inline-block mt-1">
-                      Paid (Simulated Online/COD)
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fulfillment Status</span>
-                    <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm inline-block mt-1 ${(selectedOrder.status || '').toLowerCase() === 'pending'
-                        ? 'status-badge-pending'
-                        : (selectedOrder.status || '').toLowerCase() === 'processing' || (selectedOrder.status || '').toLowerCase() === 'confirmed' || (selectedOrder.status || '').toLowerCase() === 'packed'
-                          ? 'bg-[#3B82F6] text-white border-[#2563EB]'
-                          : (selectedOrder.status || '').toLowerCase() === 'shipped' || (selectedOrder.status || '').toLowerCase() === 'dispatched'
-                            ? 'bg-[#06B6D4] text-white border-[#0891B2]'
-                            : (selectedOrder.status || '').toLowerCase() === 'out for delivery'
-                              ? 'bg-[#8B5CF6] text-white border-[#7C3AED]'
-                              : (selectedOrder.status || '').toLowerCase() === 'delivered'
-                                ? 'status-badge-success'
-                                : (selectedOrder.status || '').toLowerCase() === 'cancelled'
-                                  ? 'bg-[#EF4444] text-white border-[#DC2626]'
-                                  : 'bg-[#6B7280] text-white border-[#4B5563]'
-                      }`}>
-                      {selectedOrder.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ordered Items */}
-              <div className="mt-6">
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-850 pb-2 mb-3">
-                  Ordered Items ({selectedOrder.items?.length || 0})
-                </h4>
-                <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-                  {selectedOrder.items?.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-100/60 dark:border-slate-850/40 text-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-slate-100 dark:bg-slate-900 rounded overflow-hidden flex-shrink-0">
-                          <img
-                            src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100'}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <span className="font-semibold text-slate-855 dark:text-slate-100 block max-w-[250px] truncate">{item.name}</span>
-                          <span className="text-[10px] text-slate-400">Qty: {item.quantity} × <span className="price-amount">₹{formatPrice(item.price)}</span></span>
-                        </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</span>
+                      <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address?.phone || selectedOrder.shipping_address?.mobile || "N/A"}</span>
+                    </div>
+                    {selectedOrder.shipping_address?.alternate_mobile_number && (
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternate Mobile Number</span>
+                        <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address.alternate_mobile_number}</span>
                       </div>
-                      <span className="font-bold text-slate-855 dark:text-slate-100 price-amount">₹{formatPrice(item.price * item.quantity)}</span>
+                    )}
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Email</span>
+                      <span className="text-slate-855 dark:text-slate-100">{selectedOrder.user_email || "Not Available"}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shipping Address</span>
+                      <span className="text-slate-855 dark:text-slate-100 leading-relaxed block">
+                        {selectedOrder.shipping_address?.address || selectedOrder.shipping_address?.street || "N/A"}<br />
+                        {selectedOrder.shipping_address?.city}, {selectedOrder.shipping_address?.state} - {selectedOrder.shipping_address?.pincode}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Fulfillment & Live Order Tracking updates */}
-              <div className="mt-6 bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
-                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-850">
-                  <RefreshCw className="h-4 w-4 text-emerald-500 animate-spin-slow" />
-                  <span>Update Shipment & Tracking Timeline</span>
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Fulfillment Status</label>
-                    <select
-                      value={modalTracking.status}
-                      onChange={(e) => setModalTracking({ ...modalTracking, status: e.target.value })}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 font-semibold"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Confirmed">Confirmed</option>
-                      <option value="Packed">Packed</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Out for Delivery">Out for Delivery</option>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Estimated Delivery Date</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. May 28, 2026"
-                      value={modalTracking.delivery_date}
-                      onChange={(e) => setModalTracking({ ...modalTracking, delivery_date: e.target.value })}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Courier Carrier</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Delhivery, DHL"
-                      value={modalTracking.carrier}
-                      onChange={(e) => setModalTracking({ ...modalTracking, carrier: e.target.value })}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
-                    />
+                  {/* Order Status & Info */}
+                  <div className="space-y-4 bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Order Meta Details</h4>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Date</span>
+                      <span className="text-slate-855 dark:text-slate-100 font-semibold">
+                        {formatTimestamp(selectedOrder.created_at)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Arrival</span>
+                      <span className="text-emerald-500 dark:text-white font-semibold">
+                        {selectedOrder.delivery_date || "Pending Dispatch"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border text-emerald-500 dark:text-white bg-emerald-500/10 border-emerald-500/20 inline-block mt-1">
+                        Paid (Simulated Online/COD)
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fulfillment Status</span>
+                      <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm inline-block mt-1 ${(selectedOrder.status || '').toLowerCase() === 'pending'
+                          ? 'status-badge-pending'
+                          : (selectedOrder.status || '').toLowerCase() === 'processing' || (selectedOrder.status || '').toLowerCase() === 'confirmed' || (selectedOrder.status || '').toLowerCase() === 'packed'
+                            ? 'bg-[#3B82F6] text-white border-[#2563EB]'
+                            : (selectedOrder.status || '').toLowerCase() === 'shipped' || (selectedOrder.status || '').toLowerCase() === 'dispatched'
+                              ? 'bg-[#06B6D4] text-white border-[#0891B2]'
+                              : (selectedOrder.status || '').toLowerCase() === 'out for delivery'
+                                ? 'bg-[#8B5CF6] text-white border-[#7C3AED]'
+                                : (selectedOrder.status || '').toLowerCase() === 'delivered'
+                                  ? 'status-badge-success'
+                                  : (selectedOrder.status || '').toLowerCase() === 'cancelled'
+                                    ? 'bg-[#EF4444] text-white border-[#DC2626]'
+                                    : 'bg-[#6B7280] text-white border-[#4B5563]'
+                        }`}>
+                        {selectedOrder.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px]">
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Shipment Tracking ID</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. IN782947239"
-                      value={modalTracking.tracking_id}
-                      onChange={(e) => setModalTracking({ ...modalTracking, tracking_id: e.target.value })}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 font-mono"
-                    />
+                {/* Ordered Items */}
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-850 pb-2 mb-3">
+                    Ordered Items ({selectedOrder.items?.length || 0})
+                  </h4>
+                  <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                    {selectedOrder.items?.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-100/60 dark:border-slate-850/40 text-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-slate-100 dark:bg-slate-900 rounded overflow-hidden flex-shrink-0">
+                            <img
+                              src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100'}
+                              alt={item.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <span className="font-semibold text-slate-855 dark:text-slate-100 block max-w-[250px] truncate">{item.name}</span>
+                            <span className="text-[10px] text-slate-400">Qty: {item.quantity} × <span className="price-amount">₹{formatPrice(item.price)}</span></span>
+                          </div>
+                        </div>
+                        <span className="font-bold text-slate-855 dark:text-slate-100 price-amount">₹{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                    ))}
                   </div>
+                </div>
+
+                {/* Fulfillment & Live Order Tracking updates */}
+                <div className="bg-slate-50/50 dark:bg-slate-955/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-850">
+                    <RefreshCw className="h-4 w-4 text-emerald-500 animate-spin-slow" />
+                    <span>Update Shipment & Tracking Timeline</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Fulfillment Status</label>
+                      <select
+                        value={modalTracking.status}
+                        onChange={(e) => setModalTracking({ ...modalTracking, status: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 font-semibold"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Packed">Packed</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Out for Delivery">Out for Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Carrier Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BlueDart / Delhivery"
+                        value={modalTracking.carrier}
+                        onChange={(e) => setModalTracking({ ...modalTracking, carrier: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Tracking Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. AWBD10098234"
+                        value={modalTracking.tracking_number}
+                        onChange={(e) => setModalTracking({ ...modalTracking, tracking_number: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-slate-400 font-semibold mb-1">Custom Timeline Message (Optional)</label>
                     <input
@@ -5149,30 +5154,98 @@ export const AdminControl = () => {
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
                     />
                   </div>
-                </div>
 
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={() => handleOrderTrackingUpdate(selectedOrder._id || selectedOrder.id, modalTracking)}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Update Tracking & Notify User</span>
-                  </button>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => handleOrderTrackingUpdate(selectedOrder._id || selectedOrder.id, modalTracking)}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Update Tracking & Notify User</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Total Amount Summary */}
-              <div className="mt-6 pt-4 border-t border-slate-150 dark:border-slate-855 flex justify-between items-center">
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-between items-center flex-shrink-0 z-10">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Grand Total</span>
-                  <span className="text-2xl font-black text-slate-900 dark:text-slate-50 price-amount">₹{formatPrice(selectedOrder.total_amount)}</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white price-amount">₹{formatPrice(selectedOrder.total_amount)}</span>
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition-all text-xs"
+                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200/80 dark:border-slate-700/80 rounded-xl font-bold transition-all text-xs cursor-pointer shadow-sm"
                 >
                   Close Details
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* DELETE PRODUCT CONFIRMATION MODAL */}
+        {productToDelete && (
+          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+              <button
+                onClick={() => setProductToDelete(null)}
+                className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Product?</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Are you sure you want to permanently delete this product?
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 flex items-center gap-3">
+                <img
+                  src={productToDelete.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'}
+                  alt={productToDelete.name}
+                  className="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+                />
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{productToDelete.name}</h4>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{productToDelete.category}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setProductToDelete(null)}
+                  disabled={isDeletingProduct}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteProduct}
+                  disabled={isDeletingProduct}
+                  className="px-5 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-xs font-bold shadow-md shadow-red-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  {isDeletingProduct ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -5967,6 +6040,118 @@ export const AdminControl = () => {
                   >
                     {categorySubmitting && <RefreshCw className="h-4 w-4 animate-spin" />}
                     <span>Save Category</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* COLLECTION ADD / EDIT MODAL */}
+        {collectionModalOpen && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden p-6 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-base font-bold text-slate-850 dark:text-slate-100">
+                  {editingCollection ? 'Edit Collection' : 'Add New Collection'}
+                </h3>
+                <button onClick={() => setCollectionModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCollectionFormSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-slate-500 font-bold uppercase text-[10px] mb-1">Collection Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={collectionForm.name}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, name: e.target.value })}
+                    placeholder="e.g. Royal Bridal Heritage"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 font-bold uppercase text-[10px] mb-1">Subtitle / Tagline</label>
+                  <input
+                    type="text"
+                    value={collectionForm.subtitle}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, subtitle: e.target.value })}
+                    placeholder="e.g. Timeless Elegance & Diamond Perfection"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 font-bold uppercase text-[10px] mb-1">Description</label>
+                  <textarea
+                    rows={3}
+                    value={collectionForm.description}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, description: e.target.value })}
+                    placeholder="Collection story or description..."
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 font-bold uppercase text-[10px] mb-1">Cover Image</label>
+                  <div className="flex items-center gap-3">
+                    {collectionForm.image && (
+                      <img src={collectionForm.image} alt="Preview" className="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-800" />
+                    )}
+                    <input
+                      type="text"
+                      value={collectionForm.image}
+                      onChange={(e) => setCollectionForm({ ...collectionForm, image: e.target.value })}
+                      placeholder="https://... or upload file"
+                      className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                    />
+                    <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold cursor-pointer transition-all flex items-center gap-1">
+                      {uploadingCollectionImage ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleCollectionImageUpload} />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 font-bold uppercase text-[10px] mb-1">Display Order</label>
+                    <input
+                      type="number"
+                      value={collectionForm.display_order}
+                      onChange={(e) => setCollectionForm({ ...collectionForm, display_order: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                    />
+                  </div>
+                  <div className="flex items-end pb-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={collectionForm.is_active}
+                        onChange={(e) => setCollectionForm({ ...collectionForm, is_active: e.target.checked })}
+                        className="rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 h-4 w-4"
+                      />
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Is Active</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setCollectionModalOpen(false)}
+                    className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow transition-all"
+                  >
+                    {editingCollection ? 'Update Collection' : 'Create Collection'}
                   </button>
                 </div>
               </form>

@@ -124,17 +124,19 @@ export const OccasionGallery = ({ items: propItems, activeCollection, onCollecti
       try {
         const response = await axios.get(`${API_BASE_URL}/collections`);
         if (isMounted && response.data) {
-          const mapped = response.data.map(c => ({
-            id: c.id,
-            title: c.name || c.title,
-            subtitle: c.subtitle || c.description || (language === 'hi' ? 'विशेष संग्रह' : 'Curated Masterpiece'),
-            image: c.image || c.image_url || c.thumbnail_image || "/cat_bridal.png",
-            description: c.description || (language === 'hi' ? 'हमारे नवीनतम संग्रह की खोज करें।' : 'Discover our latest handcrafted collection.'),
-            tips: Array.isArray(c.styling_tips) && c.styling_tips.length > 0 ? c.styling_tips : [
-              language === 'hi' ? 'सुंदर लुक के लिए परिधानों के साथ पहनें।' : 'Pair with classic ensembles for timeless luxury.',
-              language === 'hi' ? 'सदाबहार चमक के लिए सोने के डिज़ाइन चुनें।' : 'Explore fine gold craftsmanship for special milestones.'
-            ]
-          }));
+          const mapped = response.data
+            .filter(c => c.is_active !== false)
+            .map(c => ({
+              id: c.id,
+              title: c.name || c.title,
+              subtitle: c.subtitle || c.description || (language === 'hi' ? 'विशेष संग्रह' : 'Curated Masterpiece'),
+              image: c.image || c.image_url || c.thumbnail_image || "/cat_bridal.png",
+              description: c.description || (language === 'hi' ? 'हमारे नवीनतम संग्रह की खोज करें।' : 'Discover our latest handcrafted collection.'),
+              tips: Array.isArray(c.styling_tips) && c.styling_tips.length > 0 ? c.styling_tips : [
+                language === 'hi' ? 'सुंदर लुक के लिए परिधानों के साथ पहनें।' : 'Pair with classic ensembles for timeless luxury.',
+                language === 'hi' ? 'सदाबहार चमक के लिए सोने के डिज़ाइन चुनें।' : 'Explore fine gold craftsmanship for special milestones.'
+              ]
+            }));
           setDbCollections(mapped);
         }
       } catch (err) {
@@ -145,7 +147,7 @@ export const OccasionGallery = ({ items: propItems, activeCollection, onCollecti
     return () => { isMounted = false; };
   }, [language]);
 
-  const items = propItems || dbCollections;
+  const items = (propItems && propItems.length > 0) ? propItems : dbCollections;
 
   return (
     <section className="relative w-full overflow-hidden py-16 bg-transparent transition-colors duration-300">

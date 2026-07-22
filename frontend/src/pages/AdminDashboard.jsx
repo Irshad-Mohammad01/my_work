@@ -7,6 +7,7 @@ import {
   AlertTriangle, Check, RefreshCw, Calendar, DollarSign, Clock, MapPin, Lock, Unlock, Shield, Search, Image, Bell, Mail
 } from 'lucide-react';
 import { AuthContext, API_BASE_URL, SERVER_BASE_URL } from '../context/AuthContext';
+import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
 
@@ -1344,15 +1345,14 @@ export const AdminDashboard = () => {
 
   // Delete Product
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-
     try {
       await axios.delete(`${API_BASE_URL}/products/${id}`);
-      fetchProducts();
-      fetchStats();
+      setProducts(prev => prev.filter(p => (p._id || p.id) !== id));
+      if (typeof fetchProducts === 'function') fetchProducts();
+      if (typeof fetchStats === 'function') fetchStats();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete product.");
+      console.error("Failed to delete product:", err);
+      throw err;
     }
   };
 
@@ -1397,12 +1397,15 @@ export const AdminDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Admin Dashboard</h1>
             <p className="text-xs text-slate-400 mt-1">Manage catalog products, handle orders, and check live service metrics.</p>
           </div>
-          <button
-            onClick={loadDashboardData}
-            className="mt-4 sm:mt-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-transparent dark:bg-[#1E1E1E] dark:border-[#D4A75F] text-slate-700 dark:text-[#D4A75F] dark:hover:bg-[#2A2A2A] rounded-[12px] dark:shadow-[0_4px_12px_rgba(212,167,95,0.25)] text-xs font-bold transition-all"
-          >
-            Refresh Data
-          </button>
+          <div className="mt-4 sm:mt-0 flex items-center gap-3">
+            <MaintenanceButton />
+            <button
+              onClick={loadDashboardData}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-transparent dark:bg-[#1E1E1E] dark:border-[#D4A75F] text-slate-700 dark:text-[#D4A75F] dark:hover:bg-[#2A2A2A] rounded-[12px] dark:shadow-[0_4px_12px_rgba(212,167,95,0.25)] text-xs font-bold transition-all"
+            >
+              Refresh Data
+            </button>
+          </div>
         </div>
 
         {/* Loading Spinner */}
@@ -1483,16 +1486,6 @@ export const AdminDashboard = () => {
                 Products
               </button>
               <button
-                onClick={() => handleTabChange('collections')}
-                className={`pb-3 px-3 md:px-4 text-xs md:text-sm border-b-2 transition-all ${
-                  activeTab === 'collections'
-                    ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
-                }`}
-              >
-                Collections
-              </button>
-              <button
                 onClick={() => handleTabChange('orders')}
                 className={`pb-3 px-3 md:px-4 text-xs md:text-sm border-b-2 transition-all ${
                   activeTab === 'orders'
@@ -1564,81 +1557,6 @@ export const AdminDashboard = () => {
 
             {/* TAB CONTENT AREAS */}
             <Suspense fallback={<TabLoadingFallback />}>
-              {renderCollectionsTab = () => (
-                <div className="w-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div>
-                      <h3 className="text-base font-extrabold flex items-center gap-2">
-                        <span>Collection Management</span>
-                        <span className="px-2.5 py-1 text-xs bg-[#D4A75F] text-[#111827] rounded-full font-bold shadow-sm">
-                          {collectionsList.length}
-                        </span>
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1">Manage database-driven collections for homepage lookbook and product dropdowns.</p>
-                    </div>
-                    <button
-                      onClick={handleOpenAddCollection}
-                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Add New Collection</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {collectionsList.map((coll, idx) => (
-                      <div key={coll.id || idx} className="border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-955/20 rounded-2xl p-4.5 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
-                        <div>
-                          <div className="flex gap-4 mb-3">
-                            <div className="h-16 w-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 flex-shrink-0">
-                              <img src={coll.image || coll.image_url || '/cat_bridal.png'} alt={coll.name} className="h-full w-full object-cover" />
-                            </div>
-                            <div className="flex flex-col justify-center min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate" title={coll.name}>{coll.name}</h4>
-                                <span className="px-2 py-0.5 text-[9px] font-black bg-amber-500/10 text-[#D4A75F] rounded-md">Order #{coll.display_order}</span>
-                              </div>
-                              {coll.subtitle && <p className="text-xs text-[#D4A75F] font-semibold truncate mt-0.5">{coll.subtitle}</p>}
-                              <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">{coll.description || 'No description provided.'}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCollection(coll.id)}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                              coll.is_active !== false 
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            {coll.is_active !== false ? '● Active' : '○ Disabled'}
-                          </button>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenEditCollection(coll)}
-                              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all cursor-pointer"
-                              title="Edit Collection"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCollection(coll.id, coll.name)}
-                              className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl transition-all cursor-pointer"
-                              title="Delete Collection"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               {activeTab === 'overview' && (
                 <AnalyticsTab
                   loadDashboardData={loadDashboardData}
@@ -1672,6 +1590,7 @@ export const AdminDashboard = () => {
                   handleOpenStockModal={handleOpenStockModal}
                   handleOpenOrdersModal={handleOpenOrdersModal}
                   handleOpenAnalyticsModal={handleOpenAnalyticsModal}
+                  handleDeleteProduct={handleDeleteProduct}
                 />
               )}
 
@@ -2378,177 +2297,172 @@ export const AdminDashboard = () => {
       {/* ORDER DETAILS MODAL OVERLAY */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-emerald-500" />
+                <span>Order Details - #{selectedOrder.order_id}</span>
+              </h3>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-            <h3 className="text-lg font-black text-slate-850 dark:text-slate-100 mb-6 flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-emerald-500" />
-              <span>Order Details - #{selectedOrder.order_id}</span>
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-655 dark:text-slate-350">
-              {/* Customer and Shipping Details */}
-              <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Customer & Shipping Information</h4>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Name</span>
-                  <span className="text-slate-855 dark:text-slate-100 font-semibold">{selectedOrder.shipping_address?.name || "N/A"}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</span>
-                  <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address?.phone || selectedOrder.shipping_address?.mobile || "N/A"}</span>
-                </div>
-                {selectedOrder.shipping_address?.alternate_mobile_number && (
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-655 dark:text-slate-350">
+                {/* Customer and Shipping Details */}
+                <div className="space-y-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Customer & Shipping Information</h4>
                   <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternate Mobile Number</span>
-                    <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address.alternate_mobile_number}</span>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Name</span>
+                    <span className="text-slate-855 dark:text-slate-100 font-semibold">{selectedOrder.shipping_address?.name || "N/A"}</span>
                   </div>
-                )}
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Email</span>
-                  <span className="text-slate-855 dark:text-slate-100">{selectedOrder.user_email || "Not Available"}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shipping Address</span>
-                  <span className="text-slate-855 dark:text-slate-100 leading-relaxed block">
-                    {selectedOrder.shipping_address?.address || selectedOrder.shipping_address?.street || "N/A"}<br />
-                    {selectedOrder.shipping_address?.city}, {selectedOrder.shipping_address?.state} - {selectedOrder.shipping_address?.pincode}
-                  </span>
-                </div>
-              </div>
-
-              {/* Order Status & Info */}
-              <div className="space-y-4 bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Order Meta Details</h4>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Date</span>
-                  <span className="text-slate-855 dark:text-slate-100 font-semibold">
-                    {formatTimestamp(selectedOrder.created_at)}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Arrival</span>
-                  <span className="text-emerald-500 dark:text-white font-semibold">
-                    {selectedOrder.delivery_date || "Pending Dispatch"}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border text-emerald-500 dark:text-white bg-emerald-500/10 border-emerald-500/20 inline-block mt-1">
-                    Paid (Simulated Online/COD)
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fulfillment Status</span>
-                  <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm inline-block mt-1 ${
-                    (selectedOrder.status || '').toLowerCase() === 'pending'
-                      ? 'status-badge-pending'
-                      : (selectedOrder.status || '').toLowerCase() === 'processing' || (selectedOrder.status || '').toLowerCase() === 'confirmed' || (selectedOrder.status || '').toLowerCase() === 'packed'
-                      ? 'bg-[#3B82F6] text-white border-[#2563EB]'
-                      : (selectedOrder.status || '').toLowerCase() === 'shipped' || (selectedOrder.status || '').toLowerCase() === 'dispatched'
-                      ? 'bg-[#06B6D4] text-white border-[#0891B2]'
-                      : (selectedOrder.status || '').toLowerCase() === 'out for delivery'
-                      ? 'bg-[#8B5CF6] text-white border-[#7C3AED]'
-                      : (selectedOrder.status || '').toLowerCase() === 'delivered'
-                      ? 'status-badge-success'
-                      : (selectedOrder.status || '').toLowerCase() === 'cancelled'
-                      ? 'bg-[#EF4444] text-white border-[#DC2626]'
-                      : 'bg-[#6B7280] text-white border-[#4B5563]'
-                  }`}>
-                    {selectedOrder.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Ordered Items */}
-            <div className="mt-6">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-850 pb-2 mb-3">
-                Ordered Items ({selectedOrder.items?.length || 0})
-              </h4>
-              <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-                {selectedOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-100/60 dark:border-slate-850/40 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-slate-100 dark:bg-slate-900 rounded overflow-hidden flex-shrink-0">
-                        <img
-                          src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100'}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <span className="font-semibold text-slate-855 dark:text-slate-100 block max-w-[250px] truncate">{item.name}</span>
-                        <span className="text-[10px] text-slate-400">Qty: {item.quantity} × <span className="price-amount">₹{formatPrice(item.price)}</span></span>
-                      </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</span>
+                    <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address?.phone || selectedOrder.shipping_address?.mobile || "N/A"}</span>
+                  </div>
+                  {selectedOrder.shipping_address?.alternate_mobile_number && (
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternate Mobile Number</span>
+                      <span className="text-slate-855 dark:text-slate-100 font-mono font-semibold">{selectedOrder.shipping_address.alternate_mobile_number}</span>
                     </div>
-                    <span className="font-bold text-slate-855 dark:text-slate-100 price-amount">₹{formatPrice(item.price * item.quantity)}</span>
+                  )}
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer Email</span>
+                    <span className="text-slate-855 dark:text-slate-100">{selectedOrder.user_email || "Not Available"}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shipping Address</span>
+                    <span className="text-slate-855 dark:text-slate-100 leading-relaxed block">
+                      {selectedOrder.shipping_address?.address || selectedOrder.shipping_address?.street || "N/A"}<br />
+                      {selectedOrder.shipping_address?.city}, {selectedOrder.shipping_address?.state} - {selectedOrder.shipping_address?.pincode}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Fulfillment & Live Order Tracking updates */}
-            <div className="mt-6 bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
-              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-850">
-                <RefreshCw className="h-4 w-4 text-emerald-500 animate-spin-slow" />
-                <span>Update Shipment & Tracking Timeline</span>
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Fulfillment Status</label>
-                  <select
-                    value={modalTracking.status}
-                    onChange={(e) => setModalTracking({ ...modalTracking, status: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 font-semibold"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Packed">Packed</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Out for Delivery">Out for Delivery</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Estimated Delivery Date</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. May 28, 2026"
-                    value={modalTracking.delivery_date}
-                    onChange={(e) => setModalTracking({ ...modalTracking, delivery_date: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Courier Carrier</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Delhivery, DHL"
-                    value={modalTracking.carrier}
-                    onChange={(e) => setModalTracking({ ...modalTracking, carrier: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
-                  />
+                {/* Order Status & Info */}
+                <div className="space-y-4 bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200/60 dark:border-slate-800 pb-2">Order Meta Details</h4>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Date</span>
+                    <span className="text-slate-855 dark:text-slate-100 font-semibold">
+                      {formatTimestamp(selectedOrder.created_at)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Arrival</span>
+                    <span className="text-emerald-500 dark:text-white font-semibold">
+                      {selectedOrder.delivery_date || "Pending Dispatch"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border text-emerald-500 dark:text-white bg-emerald-500/10 border-emerald-500/20 inline-block mt-1">
+                      Paid (Simulated Online/COD)
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fulfillment Status</span>
+                    <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm inline-block mt-1 ${(selectedOrder.status || '').toLowerCase() === 'pending'
+                        ? 'status-badge-pending'
+                        : (selectedOrder.status || '').toLowerCase() === 'processing' || (selectedOrder.status || '').toLowerCase() === 'confirmed' || (selectedOrder.status || '').toLowerCase() === 'packed'
+                          ? 'bg-[#3B82F6] text-white border-[#2563EB]'
+                          : (selectedOrder.status || '').toLowerCase() === 'shipped' || (selectedOrder.status || '').toLowerCase() === 'dispatched'
+                            ? 'bg-[#06B6D4] text-white border-[#0891B2]'
+                            : (selectedOrder.status || '').toLowerCase() === 'out for delivery'
+                              ? 'bg-[#8B5CF6] text-white border-[#7C3AED]'
+                              : (selectedOrder.status || '').toLowerCase() === 'delivered'
+                                ? 'status-badge-success'
+                                : (selectedOrder.status || '').toLowerCase() === 'cancelled'
+                                  ? 'bg-[#EF4444] text-white border-[#DC2626]'
+                                  : 'bg-[#6B7280] text-white border-[#4B5563]'
+                      }`}>
+                      {selectedOrder.status}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px]">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Shipment Tracking ID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. IN782947239"
-                    value={modalTracking.tracking_id}
-                    onChange={(e) => setModalTracking({ ...modalTracking, tracking_id: e.target.value })}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100 font-mono"
-                  />
+              {/* Ordered Items */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-850 pb-2 mb-3">
+                  Ordered Items ({selectedOrder.items?.length || 0})
+                </h4>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                  {selectedOrder.items?.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-100/60 dark:border-slate-850/40 text-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-slate-100 dark:bg-slate-900 rounded overflow-hidden flex-shrink-0">
+                          <img
+                            src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100'}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-855 dark:text-slate-100 block max-w-[250px] truncate">{item.name}</span>
+                          <span className="text-[10px] text-slate-400">Qty: {item.quantity} × <span className="price-amount">₹{formatPrice(item.price)}</span></span>
+                        </div>
+                      </div>
+                      <span className="font-bold text-slate-855 dark:text-slate-100 price-amount">₹{formatPrice(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+
+              {/* Fulfillment & Live Order Tracking updates */}
+              <div className="bg-slate-50/50 dark:bg-slate-955/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-850">
+                  <RefreshCw className="h-4 w-4 text-emerald-500 animate-spin-slow" />
+                  <span>Update Shipment & Tracking Timeline</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Fulfillment Status</label>
+                    <select
+                      value={modalTracking.status}
+                      onChange={(e) => setModalTracking({ ...modalTracking, status: e.target.value })}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Packed">Packed</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Out for Delivery">Out for Delivery</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Carrier Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. BlueDart / Delhivery"
+                      value={modalTracking.carrier}
+                      onChange={(e) => setModalTracking({ ...modalTracking, carrier: e.target.value })}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Tracking Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AWBD10098234"
+                      value={modalTracking.tracking_number}
+                      onChange={(e) => setModalTracking({ ...modalTracking, tracking_number: e.target.value })}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Custom Timeline Message (Optional)</label>
                   <input
@@ -2559,32 +2473,33 @@ export const AdminDashboard = () => {
                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
                   />
                 </div>
-              </div>
 
-              <div className="flex justify-end pt-1">
-                <button
-                  onClick={() => handleOrderTrackingUpdate(selectedOrder._id || selectedOrder.id, modalTracking)}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  <span>Update Tracking & Notify User</span>
-                </button>
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={() => handleOrderTrackingUpdate(selectedOrder._id || selectedOrder.id, modalTracking)}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Update Tracking & Notify User</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Total Amount Summary */}
-            <div className="mt-6 pt-4 border-t border-slate-150 dark:border-slate-855 flex justify-between items-center">
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm flex justify-between items-center flex-shrink-0 z-10">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Grand Total</span>
-                <span className="text-2xl font-black text-slate-900 dark:text-slate-50 price-amount">₹{formatPrice(selectedOrder.total_amount)}</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white price-amount">₹{formatPrice(selectedOrder.total_amount)}</span>
               </div>
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition-all text-xs"
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200/80 dark:border-slate-700/80 rounded-xl font-bold transition-all text-xs cursor-pointer shadow-sm"
               >
                 Close Details
               </button>
             </div>
+
           </div>
         </div>
       )}
