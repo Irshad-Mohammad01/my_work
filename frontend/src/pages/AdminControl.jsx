@@ -3172,54 +3172,54 @@ export const AdminControl = () => {
             <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-800 pb-px mb-8 overflow-x-auto">
               <button
                 onClick={() => handleTabChange('products')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'products'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'products'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 Product Management
               </button>
               <button
                 onClick={() => handleTabChange('users')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'users'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'users'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 User Management
               </button>
               <button
                 onClick={() => handleTabChange('orders')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'orders'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'orders'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 Orders Management
               </button>
               <button
                 onClick={() => handleTabChange('support')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'support'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'support'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 Support Tickets
               </button>
               <button
                 onClick={() => handleTabChange('config')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'config'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'config'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 Site Configuration
               </button>
               <button
                 onClick={() => handleTabChange('overview')}
-                className={`pb-3 px-4 text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'overview'
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'overview'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
-                    : 'border-transparent text-[#B0B7C3] hover:text-white font-normal'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
                   }`}
               >
                 Analytics
