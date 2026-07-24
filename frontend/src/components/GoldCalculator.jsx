@@ -72,20 +72,13 @@ export const GoldCalculator = () => {
   const calculations = useMemo(() => {
     const pricePerGram = activePricePerGram;
     const metalCost = pricePerGram * weight;
-    // Silver making charges are typically lower (~8%)
-    const makingPct = metalType === 'silver' ? 0.08 : 0.12;
-    const makingCharges = metalCost * makingPct;
-    const gst = (metalCost + makingCharges) * 0.03;
-    const grandTotal = metalCost + makingCharges + gst;
+    const grandTotal = metalCost;
     return {
       pricePerGram,
       metalCost: Math.round(metalCost),
-      makingCharges: Math.round(makingCharges),
-      gst: Math.round(gst),
-      grandTotal: Math.round(grandTotal),
-      makingPct: Math.round(makingPct * 100)
+      grandTotal: Math.round(grandTotal)
     };
-  }, [weight, activePricePerGram, metalType]);
+  }, [weight, activePricePerGram]);
 
   // Translation helpers
   const text = {
@@ -97,8 +90,6 @@ export const GoldCalculator = () => {
       purityLabel: "Select Gold Purity",
       calculationSummary: "Estimated Price Breakdown",
       metalCost: "Metal Cost",
-      makingCharges: "Making Charges (12%)",
-      gst: "GST & Taxes (3%)",
       totalPrice: "Estimated Grand Total",
       helperNote: "Note: Rates are updated daily at 9 AM IST. Final price may vary by design, certification, and store rates.",
       liveIndicator: "DAILY UPDATED RATE"
@@ -111,8 +102,6 @@ export const GoldCalculator = () => {
       purityLabel: "सोने की शुद्धता चुनें",
       calculationSummary: "अनुमानित मूल्य विवरण",
       metalCost: "धातु की लागत",
-      makingCharges: "मेकिंग चार्जेस (12%)",
-      gst: "जीएसटी और कर (3%)",
       totalPrice: "अनुमानित कुल मूल्य",
       helperNote: "नोट: रेट प्रतिदिन सुबह 9 बजे अपडेट होते हैं। अंतिम मूल्य डिजाइन और स्टोर दर के आधार पर भिन्न हो सकता है।",
       liveIndicator: "दैनिक अपडेट दर"
@@ -169,7 +158,7 @@ export const GoldCalculator = () => {
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
                 {metalType === 'silver'
-                  ? 'Silver jewellery price estimate with 8% making charges + 3% GST'
+                  ? (language === 'hi' ? 'चयनित वजन के आधार पर चांदी का मूल्य अनुमान' : 'Silver price estimate based on selected weight')
                   : text.subtitle}
               </p>
             </div>
@@ -347,16 +336,8 @@ export const GoldCalculator = () => {
 
                 <div className="mt-4 space-y-3.5 text-xs text-slate-400">
                   <div className="flex items-center justify-between">
-                    <span>{text.metalCost} ({weight}g)</span>
+                    <span>{text.metalCost} ({weight >= 1000 ? `${(weight / 1000).toFixed(3)}kg` : `${weight}g`})</span>
                     <span className="font-semibold text-slate-200">₹{formatPrice(calculations.metalCost)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Making Charges ({calculations.makingPct}%)</span>
-                    <span className="font-semibold text-slate-200">₹{formatPrice(calculations.makingCharges)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>{text.gst}</span>
-                    <span className="font-semibold text-slate-200">₹{formatPrice(calculations.gst)}</span>
                   </div>
                 </div>
               </div>
