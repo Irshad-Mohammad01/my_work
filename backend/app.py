@@ -53,7 +53,14 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Enable CORS for frontend requests
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
 
 # Allow flexible trailing slashes across all blueprint routes
 app.url_map.strict_slashes = False

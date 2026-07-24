@@ -35,8 +35,10 @@ def get_high_demand_config():
             "enabled_at": ""
         }
 
-@high_demand_bp.route('/status', methods=['GET'])
+@high_demand_bp.route('/status', methods=['GET', 'OPTIONS'])
 def get_high_demand_status():
+    if request.method == 'OPTIONS':
+        return jsonify({"success": True}), 200
     """
     Public endpoint to check High Demand Mode status (used for client polling every 30 seconds).
     """
@@ -48,9 +50,11 @@ def get_high_demand_status():
         "enabled_at": config["enabled_at"]
     }), 200
 
-@high_demand_bp.route('/toggle', methods=['POST'])
+@high_demand_bp.route('/toggle', methods=['POST', 'OPTIONS'])
 @admin_required
 def toggle_high_demand_mode():
+    if request.method == 'OPTIONS':
+        return jsonify({"success": True}), 200
     """
     Admin-only endpoint to enable or disable website High Demand Mode.
     Only authenticated admins can execute this operation.

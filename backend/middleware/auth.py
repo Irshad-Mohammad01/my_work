@@ -11,6 +11,8 @@ JWT_SECRET = Config.JWT_SECRET
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return f(None, *args, **kwargs)
         token = None
         # Check for Authorization header
         if 'Authorization' in request.headers:
@@ -76,6 +78,8 @@ def token_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
         token = None
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
