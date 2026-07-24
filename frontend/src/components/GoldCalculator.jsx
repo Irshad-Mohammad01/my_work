@@ -177,7 +177,7 @@ export const GoldCalculator = () => {
             {/* Purity Grid — only for gold */}
             {metalType === 'gold' && (
               <div className="space-y-2.5">
-                <label className="block text-xs font-bold tracking-wide uppercase text-slate-350">
+                <label className="block text-xs font-bold tracking-wide uppercase calculator-section-label">
                   {text.purityLabel}
                 </label>
                 <div className="grid grid-cols-4 gap-2.5">
@@ -200,7 +200,7 @@ export const GoldCalculator = () => {
             {/* Weight Input Box */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold tracking-wide uppercase text-slate-350">
+                <label className="text-xs font-bold tracking-wide uppercase calculator-section-label">
                   {text.weightLabel}
                 </label>
                 {/* Unit Toggle */}
@@ -340,7 +340,7 @@ export const GoldCalculator = () => {
           <div className="h-full lg:col-span-5">
             <div className="flex flex-col justify-between h-full p-6 space-y-6 border bg-slate-900/70 border-slate-800 rounded-2xl">
               <div>
-                <h3 className="text-xs font-bold text-slate-350 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-1.5 calculator-section-label">
                   <Info className="h-4 w-4 text-[#D4A75F]" />
                   {text.calculationSummary}
                 </h3>

@@ -128,46 +128,55 @@ export const MaintenanceProvider = ({ children }) => {
       {/* Customer-Facing Website Under Maintenance Popup Modal */}
       {isUserPopupOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-amber-500/30 dark:border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.5)] text-center transform transition-all animate-scale-up">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-amber-500/30 dark:border-amber-500/40 rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.5)] transform transition-all animate-scale-up">
             
             {/* Header Close Icon */}
             <button
               onClick={closeMaintenancePopup}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="absolute top-3 right-3 z-20 text-white bg-black/40 hover:bg-black/60 backdrop-blur-md p-1.5 rounded-full transition-colors cursor-pointer"
+              title="Close"
             >
               <X className="h-5 w-5" />
             </button>
 
-            {/* Maintenance Icon Badge */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-5 shadow-inner">
-              <ShieldAlert className="h-8 w-8 text-amber-500 dark:text-amber-400 animate-pulse" />
+            {/* Full-Width Top Hero Banner Image */}
+            <div className="relative w-full h-[180px] sm:h-[210px] md:h-[230px] bg-slate-950 overflow-hidden">
+              <img
+                src="/maintenance_logo.jpg"
+                alt="Website Maintenance Hero Banner"
+                className="w-full h-full object-cover rounded-t-3xl block select-none no-zoom"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-black/20 pointer-events-none" />
             </div>
 
-            {/* Popup Title */}
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
-              Website Under Maintenance
-            </h3>
+            {/* Popup Body Content */}
+            <div className="p-6 sm:p-8 text-center">
+              {/* Popup Title */}
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
+                Website Under Maintenance
+              </h3>
 
-            {/* Popup Message */}
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-6">
-              We are performing scheduled maintenance. Ordering is temporarily unavailable. Please try again shortly.
-            </p>
-
-            {/* Information Notice Pill */}
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl p-3.5 mb-6 text-left flex items-start gap-2.5">
-              <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold leading-snug">
-                Product browsing remains fully accessible. You can continue exploring our collections.
+              {/* Popup Message */}
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-6">
+                We are fixing the issue. Please try again shortly.
               </p>
-            </div>
 
-            {/* Action Button */}
-            <button
-              onClick={closeMaintenancePopup}
-              className="w-full py-3 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/25 active:scale-98 transition-all text-sm tracking-wide"
-            >
-              Understood & Close
-            </button>
+              {/* Information Notice Pill */}
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl p-3.5 mb-6 text-left flex items-start gap-2.5">
+                <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold leading-snug">
+                  Product browsing remains fully accessible. You can continue exploring our collections.
+                </p>
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={closeMaintenancePopup}
+                className="w-full py-3 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/25 active:scale-98 transition-all text-sm tracking-wide cursor-pointer"
+              >
+                Understood & Close
+              </button>
+            </div>
           </div>
         </div>
       )}

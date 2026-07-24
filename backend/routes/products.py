@@ -45,12 +45,17 @@ def get_admin_name_from_request():
         import jwt
         from backend.models.user import UserModel
         data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        if data.get("user_id") == "admin_user" and data.get("is_admin"):
-            return "Administrator"
-        else:
-            user = UserModel.find_by_id(data.get("user_id"))
-            if user:
-                return user.get("name") or user.get("email") or "admin"
+        if data.get("username"):
+            return data.get("username")
+        admin_id = data.get("admin_id") or data.get("user_id")
+        if admin_id and str(admin_id).isdigit():
+            from backend.models.admin import AdminModel
+            adm = AdminModel.query.get(int(admin_id))
+            if adm:
+                return adm.username
+        user = UserModel.find_by_id(admin_id)
+        if user:
+            return user.get("name") or user.get("email") or "Admin"
     except Exception:
         pass
     return "admin"
@@ -59,13 +64,14 @@ def get_admin_name_from_request():
 def get_products():
     category = request.args.get('category')
     search = request.args.get('search')
+    collection = request.args.get('collection')
     admin_view = request.args.get('admin_view') or request.args.get('admin')
     
     homepage_only = False
-    if not category and not search and admin_view != 'true':
+    if not category and not search and not collection and admin_view != 'true':
         homepage_only = True
         
-    products = ProductModel.get_all(category, search, homepage_only=homepage_only)
+    products = ProductModel.get_all(category, search, homepage_only=homepage_only, collection=collection)
     return jsonify(products), 200
 
 @products_bp.route('/categories', methods=['GET'])

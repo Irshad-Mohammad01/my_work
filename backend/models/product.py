@@ -173,11 +173,17 @@ class ProductModel(db.Model):
             query = query.join(Category).filter(Category.name == category)
 
         if collection and collection != 'All':
-            if str(collection).isdigit():
-                query = query.filter(ProductModel.collection_id == int(collection))
+            coll_str = str(collection).strip()
+            if coll_str.isdigit():
+                query = query.filter(ProductModel.collection_id == int(coll_str))
             else:
+                from sqlalchemy import func
+                coll_lower = coll_str.lower()
+                coll_slug_lower = coll_lower.replace(' ', '-')
                 query = query.outerjoin(CollectionModel).filter(
-                    (CollectionModel.name == collection) | (CollectionModel.slug == collection)
+                    (func.lower(CollectionModel.name) == coll_lower) | 
+                    (func.lower(CollectionModel.slug) == coll_lower) |
+                    (func.lower(CollectionModel.slug) == coll_slug_lower)
                 )
             
         if search_query:

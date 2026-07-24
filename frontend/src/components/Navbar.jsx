@@ -197,6 +197,17 @@ export const Navbar = () => {
     }
   }, [notificationsOpen, unreadCount]);
 
+  const handleLogoClick = (e) => {
+    setMobileMenuOpen(false);
+    if (location.pathname === '/' || location.pathname === '') {
+      e.preventDefault();
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchVal.trim()) {
@@ -250,11 +261,15 @@ export const Navbar = () => {
               </button>
 
               {/* SSJewellery Logo and Brand Name Identity */}
-              <Link to="/" className="flex items-center gap-[14px] flex-shrink-0 brand-typography-wrapper select-none group no-underline">
+              <Link
+                to="/"
+                onClick={handleLogoClick}
+                className="flex items-center gap-[14px] flex-shrink-0 brand-typography-wrapper navbar-brand-logo no-zoom select-none group no-underline cursor-pointer"
+              >
                 <img
                   src="/navbar-logo.png"
                   alt="SSJewellery Logo"
-                  className="h-[46px] md:h-[56px] lg:h-[65px] w-auto object-contain flex-shrink-0"
+                  className="h-[46px] md:h-[56px] lg:h-[65px] w-auto object-contain flex-shrink-0 no-zoom"
                 />
                 <div className="flex items-baseline whitespace-nowrap">
                   <span className="font-great-vibes text-xl sm:text-2xl md:text-3xl text-[#3F1D5A] dark:text-[#EFE7DB] relative pb-1 transition-colors duration-300 select-none">
@@ -728,11 +743,15 @@ export const Navbar = () => {
                 >
                   <Menu className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                 </button>
-                <Link to="/" className="flex items-center gap-1.5 sm:gap-[14px] flex-shrink-0 brand-typography-wrapper select-none group no-underline flex-nowrap">
+                <Link
+                  to="/"
+                  onClick={handleLogoClick}
+                  className="flex items-center gap-1.5 sm:gap-[14px] flex-shrink-0 brand-typography-wrapper navbar-brand-logo no-zoom select-none group no-underline flex-nowrap cursor-pointer"
+                >
                   <img 
                     src="/navbar-logo.png" 
                     alt="SSJewellery Logo" 
-                    className="h-[38px] sm:h-[48px] lg:h-[65px] w-auto object-contain flex-shrink-0"
+                    className="h-[38px] sm:h-[48px] lg:h-[65px] w-auto object-contain flex-shrink-0 no-zoom"
                   />
                   <div className="items-center hidden sm:flex whitespace-nowrap">
                     <span className="font-cinzel text-sm sm:text-xl md:text-2xl font-bold tracking-[1px] sm:tracking-[2px] text-[#3F1D5A] dark:text-[#EFE7DB] transition-colors duration-300">

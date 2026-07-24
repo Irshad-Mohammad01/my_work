@@ -8,6 +8,7 @@ import {
   Settings, Globe, Link as LinkIcon
 } from 'lucide-react';
 import { AuthContext, API_BASE_URL, SERVER_BASE_URL } from '../context/AuthContext';
+import { HighDemandButton } from '../components/admin/HighDemandButton';
 import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
@@ -3101,6 +3102,7 @@ export const AdminControl = () => {
             <p className="text-xs text-slate-400 mt-1">Perform product CRUD, modify user status, update orders, and review customer tickets.</p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
+            <HighDemandButton />
             <MaintenanceButton />
             <button
               onClick={loadDashboardData}

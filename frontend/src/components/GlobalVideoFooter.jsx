@@ -289,15 +289,22 @@ export const GlobalVideoFooter = () => {
       </div>
 
       <div className="w-full max-w-[90%] mx-auto flex flex-col items-center justify-center text-center mt-4 pointer-events-none">
-        {/* Subtitle with gold accent */}
+        {/* Subtitle with gold accent & clickable hyperlink */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 0.65, y: 0 }}
+          whileInView={{ opacity: 0.85, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-[9px] sm:text-xs tracking-[0.45em] uppercase text-[#D4A75F] font-bold mb-2"
+          className="text-[9px] sm:text-xs tracking-[0.45em] uppercase text-[#D4A75F] font-bold mb-2 pointer-events-auto"
         >
-          Crafting Timeless Elegance
+          <a
+            href="https://hexmap.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#EFE7DB] hover:underline underline-offset-4 decoration-[#D4A75F] transition-all duration-300 cursor-pointer"
+          >
+            Hexmap Private Limited
+          </a>
         </motion.p>
       </div>
     </footer>

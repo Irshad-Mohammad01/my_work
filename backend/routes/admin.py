@@ -13,49 +13,101 @@ from sqlalchemy import func
 
 from backend.config import Config
 
+import bcrypt
+from backend.models.admin import AdminModel
+
 admin_bp = Blueprint('admin', __name__)
 
 JWT_SECRET = Config.JWT_SECRET
-ADMIN_ID = os.getenv("ADMIN_ID", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
 @admin_bp.route('/login', methods=['POST'])
 def admin_login():
     data = request.get_json() or {}
-    admin_id = data.get("admin_id")
-    password = data.get("password")
+    admin_identifier = (data.get("admin_id") or data.get("username") or data.get("email") or "").strip()
+    password = data.get("password") or ""
     
-    if not admin_id or not password:
+    if not admin_identifier or not password:
         return jsonify({"message": "Please enter both Admin ID and Password."}), 400
         
-    if (admin_id == ADMIN_ID or admin_id == "admin@SSJewellery.com") and password == ADMIN_PASSWORD:
-        # Generate JWT Token for Admin
-        payload = {
-            "user_id": "admin_user",
+    # 1. Search admins table via AdminModel
+    admin_record = AdminModel.query.filter(
+        (AdminModel.username == admin_identifier) | 
+        (func.lower(AdminModel.username) == admin_identifier.lower())
+    ).first()
+
+    admin_id_str = None
+    admin_name_str = None
+    admin_email_str = None
+
+    if admin_record:
+        password_valid = False
+        if admin_record.password.startswith("$2b$") or admin_record.password.startswith("$2a$"):
+            try:
+                password_valid = bcrypt.checkpw(password.encode('utf-8'), admin_record.password.encode('utf-8'))
+            except Exception:
+                password_valid = False
+        else:
+            password_valid = (admin_record.password == password)
+
+        if password_valid:
+            admin_id_str = str(admin_record.id)
+            admin_name_str = admin_record.username
+            admin_email_str = admin_record.username if "@" in admin_record.username else f"{admin_record.username}@admin.local"
+
+    # 2. Fallback to UserModel table if is_admin is True
+    if not admin_id_str:
+        user_admin = UserModel.query.filter(
+            (UserModel.is_admin == True) & 
+            ((UserModel.email == admin_identifier.lower()) | (func.lower(UserModel.full_name) == admin_identifier.lower()))
+        ).first()
+
+        if user_admin:
+            password_valid = False
+            if user_admin.password.startswith("$2b$") or user_admin.password.startswith("$2a$"):
+                try:
+                    password_valid = bcrypt.checkpw(password.encode('utf-8'), user_admin.password.encode('utf-8'))
+                except Exception:
+                    password_valid = False
+            else:
+                password_valid = (user_admin.password == password)
+
+            if password_valid:
+                admin_id_str = str(user_admin.id)
+                admin_name_str = user_admin.name
+                admin_email_str = user_admin.email
+
+    if not admin_id_str:
+        from backend.utils.audit import log_admin_action
+        log_admin_action("Admin Login", "Admin Authentication", f"Failed admin login attempt (ID: {admin_identifier})", status="Failed")
+        return jsonify({"message": "Invalid Admin credentials."}), 401
+
+    # Generate JWT token with database-driven Admin identity
+    payload = {
+        "admin_id": admin_id_str,
+        "user_id": admin_id_str,
+        "username": admin_name_str,
+        "email": admin_email_str,
+        "is_admin": True,
+        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    
+    from backend.utils.audit import log_admin_action
+    log_admin_action("Admin Login", "Admin Authentication", f"Admin '{admin_name_str}' logged in successfully")
+    
+    return jsonify({
+        "message": "Admin login successful!",
+        "token": token,
+        "user": {
+            "id": admin_id_str,
+            "_id": admin_id_str,
+            "name": admin_name_str,
+            "username": admin_name_str,
+            "email": admin_email_str,
             "is_admin": True,
-            "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+            "role": "admin"
         }
-        token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-        
-        # Audit Log
-        from backend.utils.audit import log_admin_action
-        log_admin_action("Admin Login", "Admin Authentication", "Admin login successful")
-        
-        return jsonify({
-            "message": "Admin login successful!",
-            "token": token,
-            "user": {
-                "name": "Administrator",
-                "email": "admin@SSJewellery.com",
-                "is_admin": True,
-                "role": "admin"
-            }
-        }), 200
-    else:
-        # Audit Log for failed attempt
-        from backend.utils.audit import log_admin_action
-        log_admin_action("Admin Login", "Admin Authentication", f"Failed admin login attempt (ID: {admin_id})", status="Failed")
-        return jsonify({"message": "Invalid Admin credentials. Check your configured .env file."}), 401
+    }), 200
 
 @admin_bp.route('/stats', methods=['GET'])
 @admin_required

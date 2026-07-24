@@ -7,6 +7,7 @@ import {
   AlertTriangle, Check, RefreshCw, Calendar, DollarSign, Clock, MapPin, Lock, Unlock, Shield, Search, Image, Bell, Mail
 } from 'lucide-react';
 import { AuthContext, API_BASE_URL, SERVER_BASE_URL } from '../context/AuthContext';
+import { HighDemandButton } from '../components/admin/HighDemandButton';
 import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
@@ -1398,6 +1399,7 @@ export const AdminDashboard = () => {
             <p className="text-xs text-slate-400 mt-1">Manage catalog products, handle orders, and check live service metrics.</p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
+            <HighDemandButton />
             <MaintenanceButton />
             <button
               onClick={loadDashboardData}
