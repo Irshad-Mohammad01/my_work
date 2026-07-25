@@ -124,7 +124,7 @@ def manual_refresh_gold_rate():
     """
     try:
         from backend.utils.gold_rate_scheduler import fetch_and_store_metal_rates
-        result = fetch_and_store_metal_rates()
+        result = fetch_and_store_metal_rates(force=True)
 
         if result["success"]:
             return jsonify({

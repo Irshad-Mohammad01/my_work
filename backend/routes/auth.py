@@ -1228,6 +1228,25 @@ def get_notifications(current_user):
         return jsonify([]), 200
     notifications = user.get("notifications", [])
     notifications = sorted(notifications, key=lambda x: x.get("created_at", ""), reverse=True)
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        import math
+        from backend.utils.pagination import parse_pagination_params
+        p_num, p_limit = parse_pagination_params()
+        total_records = len(notifications)
+        total_pages = math.ceil(total_records / p_limit) if total_records > 0 else 1
+        offset = (p_num - 1) * p_limit
+        items = notifications[offset:offset + p_limit]
+        return jsonify({
+            "items": items,
+            "total_records": total_records,
+            "total_pages": total_pages,
+            "current_page": p_num,
+            "page_size": p_limit,
+            "has_next": p_num < total_pages,
+            "has_previous": p_num > 1
+        }), 200
     return jsonify(notifications), 200
 
 @auth_bp.route('/notifications/<notification_id>/read', methods=['PUT'])

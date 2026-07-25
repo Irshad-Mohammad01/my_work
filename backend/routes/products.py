@@ -70,6 +70,15 @@ def get_products():
     homepage_only = False
     if not category and not search and not collection and admin_view != 'true':
         homepage_only = True
+
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        from backend.utils.pagination import parse_pagination_params
+        p_num, p_limit = parse_pagination_params()
+        result = ProductModel.get_all(category, search, homepage_only=homepage_only, collection=collection, page=p_num, limit=p_limit)
+        return jsonify(result), 200
         
     products = ProductModel.get_all(category, search, homepage_only=homepage_only, collection=collection)
     return jsonify(products), 200

@@ -170,6 +170,13 @@ def get_dashboard_stats():
 @admin_bp.route('/users', methods=['GET'])
 @admin_required
 def get_all_users():
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        from backend.utils.pagination import parse_pagination_params
+        p_num, p_limit = parse_pagination_params()
+        users = UserModel.find_all(page=p_num, limit=p_limit)
+        return jsonify(users), 200
     users = UserModel.find_all()
     return jsonify(users), 200
 
@@ -762,8 +769,7 @@ def get_product_analytics(id):
 @admin_required
 def get_all_audit_logs():
     from backend.models.product import ProductAuditLogModel, ProductModel
-    
-    logs = db.session.query(
+    query = db.session.query(
         ProductAuditLogModel,
         ProductModel.name
     ).outerjoin(
@@ -771,15 +777,23 @@ def get_all_audit_logs():
         ProductModel.id == ProductAuditLogModel.product_id
     ).order_by(
         ProductAuditLogModel.created_at.desc()
-    ).all()
+    )
     
-    results = []
-    for log, prod_name in logs:
+    def serialize_log(row):
+        log, prod_name = row
         d = log.to_dict()
         d["product_name"] = prod_name or f"Deleted Product (ID: {log.product_id})"
-        results.append(d)
-        
-    return jsonify(results), 200
+        return d
+
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        from backend.utils.pagination import parse_pagination_params, paginate_query
+        p_num, p_limit = parse_pagination_params()
+        return jsonify(paginate_query(query, page=p_num, limit=p_limit, serializer=serialize_log)), 200
+
+    logs = query.all()
+    return jsonify([serialize_log(l) for l in logs]), 200
 
 # Get general audit logs
 @admin_bp.route('/general-audit-logs', methods=['GET'])
@@ -795,16 +809,25 @@ def get_general_audit_logs():
     
     if search:
         query = query.filter(
-            (AdminAuditLog.admin_username.like(f"%{search}%")) |
-            (AdminAuditLog.details.like(f"%{search}%")) |
-            (AdminAuditLog.module.like(f"%{search}%"))
+            (AdminAuditLog.admin_username.ilike(f"%{search}%")) |
+            (AdminAuditLog.details.ilike(f"%{search}%")) |
+            (AdminAuditLog.module.ilike(f"%{search}%"))
         )
     if action_type:
         query = query.filter(AdminAuditLog.action_type == action_type)
     if status:
         query = query.filter(AdminAuditLog.status == status)
         
-    logs = query.order_by(AdminAuditLog.created_at.desc()).all()
+    query = query.order_by(AdminAuditLog.created_at.desc())
+
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        from backend.utils.pagination import parse_pagination_params, paginate_query
+        p_num, p_limit = parse_pagination_params()
+        return jsonify(paginate_query(query, page=p_num, limit=p_limit)), 200
+
+    logs = query.all()
     return jsonify([log.to_dict() for log in logs]), 200
 
 # Admin logout route
@@ -820,9 +843,18 @@ def admin_logout_route():
 @admin_required
 def get_admin_notifications():
     from backend.models.notification import NotificationModel
-    notifications = NotificationModel.query.filter(
+    query = NotificationModel.query.filter(
         NotificationModel.type.in_(['SUPPORT_TICKET', 'BUY_REQUEST', 'LOW_STOCK'])
-    ).order_by(NotificationModel.created_at.desc()).all()
+    ).order_by(NotificationModel.created_at.desc())
+
+    page_arg = request.args.get('page')
+    limit_arg = request.args.get('limit') or request.args.get('page_size')
+    if page_arg or limit_arg or request.args.get('paginate') == 'true':
+        from backend.utils.pagination import parse_pagination_params, paginate_query
+        p_num, p_limit = parse_pagination_params()
+        return jsonify(paginate_query(query, page=p_num, limit=p_limit)), 200
+
+    notifications = query.all()
     return jsonify([n.to_dict() for n in notifications]), 200
 
 
