@@ -741,23 +741,16 @@ const BannerSlider = React.memo(({
 });
 
 const DEFAULT_CATEGORIES = [
-  { name: "Rings", label: "Rings", img: "/cat_rings.png" },
-  { name: "Necklaces", label: "Necklaces", img: "/cat_necklaces.png" },
-  { name: "Earrings", label: "Earrings", img: "/cat_earrings.png" },
-  { name: "Bracelets", label: "Bracelets", img: "/cat_bracelets.png" },
-  { name: "Bridal Collection", label: "Bridal Collection", img: "/cat_bridal.png" }
+  { name: "Rings", label: "Rings", img: null },
+  { name: "Necklaces", label: "Necklaces", img: null },
+  { name: "Earrings", label: "Earrings", img: null },
+  { name: "Bracelets", label: "Bracelets", img: null },
+  { name: "Bridal Collection", label: "Bridal Collection", img: null }
 ];
 
 const getCategoryDefaultImg = (name, img) => {
-  if (img && img !== '/logo.svg') return img;
-  if (!name) return '/logo.svg';
-  const lower = name.toLowerCase();
-  if (lower.includes('ring')) return '/cat_rings.png';
-  if (lower.includes('necklace')) return '/cat_necklaces.png';
-  if (lower.includes('earring')) return '/cat_earrings.png';
-  if (lower.includes('bracelet') || lower.includes('bangle')) return '/cat_bracelets.png';
-  if (lower.includes('bridal')) return '/cat_bridal.png';
-  return '/logo.svg';
+  if (img && img !== '/logo.svg' && !img.includes('cat_')) return img;
+  return null;
 };
 
 const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCategoryClick }) => {
@@ -846,17 +839,23 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
                         height: '76px'
                       }}
                     >
-                      <LuxuryImage
-                        src={cat.img}
-                        alt={translateCategory(cat.name, language)}
-                        width="76"
-                        height="76"
-                        wrapperClassName="rounded-full"
-                        className={`w-full h-full object-cover rounded-full transition-all duration-500 no-zoom ${isActive
-                          ? 'opacity-100 saturate-120 brightness-105 contrast-105'
-                          : 'opacity-50 saturate-30 brightness-90 contrast-90 group-hover:opacity-100 group-hover:saturate-100 group-hover:brightness-100 group-hover:contrast-100'
-                          }`}
-                      />
+                      {cat.img ? (
+                        <LuxuryImage
+                          src={cat.img}
+                          alt={translateCategory(cat.name, language)}
+                          width="76"
+                          height="76"
+                          wrapperClassName="rounded-full"
+                          className={`w-full h-full object-cover rounded-full transition-all duration-500 no-zoom ${isActive
+                            ? 'opacity-100 saturate-120 brightness-105 contrast-105'
+                            : 'opacity-50 saturate-30 brightness-90 contrast-90 group-hover:opacity-100 group-hover:saturate-100 group-hover:brightness-100 group-hover:contrast-100'
+                            }`}
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#1B0B26] via-[#3F1D5A] to-[#2E1442] flex flex-col items-center justify-center text-center p-1 border border-[#D4A75F]/30">
+                          <Sparkles className="w-5 h-5 text-[#D4A75F] animate-pulse" />
+                        </div>
+                      )}
                     </div>
 
                     <span className={`mt-2 text-xs md:text-sm font-bold tracking-wide transition-colors duration-300 text-center w-full px-0.5 ${isActive
@@ -915,17 +914,23 @@ const CategoryGrid = React.memo(({ activeCategory, loading: parentLoading, onCat
                         height: '68px'
                       }}
                     >
-                      <LuxuryImage
-                        src={cat.img}
-                        alt={translateCategory(cat.name, language)}
-                        width="68"
-                        height="68"
-                        wrapperClassName="rounded-full"
-                        className={`w-full h-full object-cover rounded-full transition-all duration-500 no-zoom ${isActive
-                          ? 'opacity-100 saturate-120 brightness-105 contrast-105'
-                          : 'opacity-50 saturate-30 brightness-90 contrast-90 group-hover:opacity-100 group-hover:saturate-100 group-hover:brightness-100 group-hover:contrast-100'
-                          }`}
-                      />
+                      {cat.img ? (
+                        <LuxuryImage
+                          src={cat.img}
+                          alt={translateCategory(cat.name, language)}
+                          width="68"
+                          height="68"
+                          wrapperClassName="rounded-full"
+                          className={`w-full h-full object-cover rounded-full transition-all duration-500 no-zoom ${isActive
+                            ? 'opacity-100 saturate-120 brightness-105 contrast-105'
+                            : 'opacity-50 saturate-30 brightness-90 contrast-90 group-hover:opacity-100 group-hover:saturate-100 group-hover:brightness-100 group-hover:contrast-100'
+                            }`}
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#1B0B26] via-[#3F1D5A] to-[#2E1442] flex flex-col items-center justify-center text-center p-1 border border-[#D4A75F]/30">
+                          <Sparkles className="w-4 h-4 text-[#D4A75F] animate-pulse" />
+                        </div>
+                      )}
                     </div>
 
                     <span className={`mt-2 text-[10px] sm:text-xs font-bold tracking-wide transition-colors duration-300 text-center w-full px-0.5 ${isActive

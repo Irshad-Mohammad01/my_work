@@ -251,35 +251,35 @@ def seed_database():
                     "name": "Wedding Wear",
                     "slug": "wedding-wear",
                     "description": "Regal Heritage Kundan bridal sets and royal elegance",
-                    "thumbnail_image": "/cat_bridal.png",
+                    "thumbnail_image": None,
                     "display_order": 1
                 },
                 {
                     "name": "Daily Wear",
                     "slug": "daily-wear",
                     "description": "Versatile Chic Bangles and daily gold bands",
-                    "thumbnail_image": "/cat_bracelets.png",
+                    "thumbnail_image": None,
                     "display_order": 2
                 },
                 {
                     "name": "Office Wear",
                     "slug": "office-wear",
                     "description": "Minimalistic Luxury Studs and sleek executive items",
-                    "thumbnail_image": "/cat_earrings.png",
+                    "thumbnail_image": None,
                     "display_order": 3
                 },
                 {
                     "name": "Date Night",
                     "slug": "date-night",
                     "description": "Elegance & Layered Statements under candlelit tables",
-                    "thumbnail_image": "/cat_necklaces.png",
+                    "thumbnail_image": None,
                     "display_order": 4
                 },
                 {
                     "name": "New Collection",
                     "slug": "new-collection",
                     "description": "Fresh Masterpieces & Diamond Solitaires",
-                    "thumbnail_image": "/luxury_solitaire_ring.png",
+                    "thumbnail_image": None,
                     "display_order": 5
                 }
             ]

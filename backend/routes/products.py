@@ -111,7 +111,7 @@ def get_all_categories():
                 "name": cat.name,
                 "name_en": cat.name_en or cat.name,
                 "name_hi": cat.name_hi or cat.name,
-                "image_url": image_url or "/logo.svg"
+                "image_url": image_url if (image_url and image_url != "/logo.svg") else None
             })
         if result:
             categories_cache.set('all_categories', result)
@@ -119,11 +119,11 @@ def get_all_categories():
     except Exception as e:
         print("Error fetching categories:", e)
         fallback = [
-            {"id": "1", "_id": "1", "name": "Rings", "name_en": "Rings", "name_hi": "अंगूठियाँ", "image_url": "/cat_rings.png"},
-            {"id": "2", "_id": "2", "name": "Necklaces", "name_en": "Necklaces", "name_hi": "हार", "image_url": "/cat_necklaces.png"},
-            {"id": "3", "_id": "3", "name": "Earrings", "name_en": "Earrings", "name_hi": "झुमके", "image_url": "/cat_earrings.png"},
-            {"id": "4", "_id": "4", "name": "Bracelets", "name_en": "Bracelets", "name_hi": "कंगन", "image_url": "/cat_bracelets.png"},
-            {"id": "5", "_id": "5", "name": "Bridal Collection", "name_en": "Bridal Collection", "name_hi": "ब्राइडल कलेक्शन", "image_url": "/cat_bridal.png"}
+            {"id": "1", "_id": "1", "name": "Rings", "name_en": "Rings", "name_hi": "अंगूठियाँ", "image_url": None},
+            {"id": "2", "_id": "2", "name": "Necklaces", "name_en": "Necklaces", "name_hi": "हार", "image_url": None},
+            {"id": "3", "_id": "3", "name": "Earrings", "name_en": "Earrings", "name_hi": "झुमके", "image_url": None},
+            {"id": "4", "_id": "4", "name": "Bracelets", "name_en": "Bracelets", "name_hi": "कंगन", "image_url": None},
+            {"id": "5", "_id": "5", "name": "Bridal Collection", "name_en": "Bridal Collection", "name_hi": "ब्राइडल कलेक्शन", "image_url": None}
         ]
         return jsonify(fallback), 200
 
@@ -136,11 +136,11 @@ def get_all_collections():
     except Exception as e:
         print("Error fetching collections:", e)
         fallback = [
-            {"id": "1", "_id": "1", "name": "Wedding Wear", "title": "Wedding Wear", "slug": "wedding-wear", "description": "Regal Heritage Kundan", "image": "/cat_bridal.png", "image_url": "/cat_bridal.png"},
-            {"id": "2", "_id": "2", "name": "Daily Wear", "title": "Daily Wear", "slug": "daily-wear", "description": "Versatile Chic Bangles", "image": "/cat_bracelets.png", "image_url": "/cat_bracelets.png"},
-            {"id": "3", "_id": "3", "name": "Office Wear", "title": "Office Wear", "slug": "office-wear", "description": "Minimalistic Luxury Studs", "image": "/cat_earrings.png", "image_url": "/cat_earrings.png"},
-            {"id": "4", "_id": "4", "name": "Date Night", "title": "Date Night", "slug": "date-night", "description": "Elegance & Layered Statements", "image": "/cat_necklaces.png", "image_url": "/cat_necklaces.png"},
-            {"id": "5", "_id": "5", "name": "New Collection", "title": "New Collection", "slug": "new-collection", "description": "Fresh Masterpieces & Solitaires", "image": "/luxury_solitaire_ring.png", "image_url": "/luxury_solitaire_ring.png"}
+            {"id": "1", "_id": "1", "name": "Wedding Wear", "title": "Wedding Wear", "slug": "wedding-wear", "description": "Regal Heritage Kundan", "image": None, "image_url": None},
+            {"id": "2", "_id": "2", "name": "Daily Wear", "title": "Daily Wear", "slug": "daily-wear", "description": "Versatile Chic Bangles", "image": None, "image_url": None},
+            {"id": "3", "_id": "3", "name": "Office Wear", "title": "Office Wear", "slug": "office-wear", "description": "Minimalistic Luxury Studs", "image": None, "image_url": None},
+            {"id": "4", "_id": "4", "name": "Date Night", "title": "Date Night", "slug": "date-night", "description": "Elegance & Layered Statements", "image": None, "image_url": None},
+            {"id": "5", "_id": "5", "name": "New Collection", "title": "New Collection", "slug": "new-collection", "description": "Fresh Masterpieces & Solitaires", "image": None, "image_url": None}
         ]
         return jsonify(fallback), 200
 

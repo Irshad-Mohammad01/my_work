@@ -106,11 +106,10 @@ export const HighDemandOverlay = () => {
         muted
         loop
         playsInline
-        className="w-full h-full object-cover block select-none pointer-events-none"
+        className="w-full h-full object-contain md:object-cover block select-none pointer-events-none"
         style={{
           width: '100%',
-          height: '100%',
-          objectFit: 'cover'
+          height: '100%'
         }}
       />
     </div>

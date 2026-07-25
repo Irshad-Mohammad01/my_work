@@ -2403,12 +2403,18 @@ export const AdminControl = () => {
                 {adminCategories.map((cat) => (
                   <tr key={cat.id} className="text-sm hover:bg-slate-50/50 dark:hover:bg-slate-850/30">
                     <td className="py-3 pl-2">
-                      <img
-                        src={cat.image_url || "/logo.svg"}
-                        alt={cat.name}
-                        className="w-10 h-10 object-cover rounded-full border border-slate-200 dark:border-slate-800"
-                        onError={(e) => { e.target.src = "/logo.svg"; }}
-                      />
+                      {cat.image_url && cat.image_url !== '/logo.svg' && !cat.image_url.includes('cat_') ? (
+                        <img
+                          src={cat.image_url}
+                          alt={cat.name}
+                          className="w-10 h-10 object-cover rounded-full border border-slate-200 dark:border-slate-800"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1B0B26] to-[#3F1D5A] border border-[#D4A75F]/30 flex items-center justify-center text-[#D4A75F]">
+                          <Sparkles className="w-4 h-4 animate-pulse" />
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 font-semibold text-slate-850 dark:text-slate-200">{cat.name}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-400">{cat.name_en || cat.name}</td>
@@ -2491,12 +2497,18 @@ export const AdminControl = () => {
 
                     <div className="flex gap-4 mb-4">
                       <div className="h-20 w-20 sm:h-22 sm:w-22 rounded-[16px] overflow-hidden bg-slate-100 dark:bg-[#0F172A] border border-slate-200/60 dark:border-white/10 flex-shrink-0 shadow-sm">
-                        <img
-                          src={coll.image || coll.image_url || '/cat_bridal.png'}
-                          alt={coll.name}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => { e.target.src = '/cat_bridal.png'; }}
-                        />
+                        {(coll.image || coll.image_url) && !(coll.image || coll.image_url).includes('cat_') ? (
+                          <img
+                            src={coll.image || coll.image_url}
+                            alt={coll.name}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-gradient-to-br from-[#1B0B26] to-[#3F1D5A] flex items-center justify-center text-[#D4A75F]">
+                            <Sparkles className="w-6 h-6 animate-pulse" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col justify-center min-w-0 flex-1">
                         <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-[#D4AF37] transition-colors" title={coll.name}>

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from './AuthContext';
-import { Wrench, AlertTriangle, X, ShieldAlert } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export const MaintenanceContext = createContext();
 
@@ -128,51 +128,31 @@ export const MaintenanceProvider = ({ children }) => {
       {/* Customer-Facing Website Under Maintenance Popup Modal */}
       {isUserPopupOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-amber-500/30 dark:border-amber-500/40 rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.5)] transform transition-all animate-scale-up">
+          <div className="relative w-full max-w-lg bg-[#0B1220] border border-[#D4A75F]/30 rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.6)] transform transition-all animate-scale-up flex flex-col">
             
             {/* Header Close Icon */}
             <button
               onClick={closeMaintenancePopup}
-              className="absolute top-3 right-3 z-20 text-white bg-black/40 hover:bg-black/60 backdrop-blur-md p-1.5 rounded-full transition-colors cursor-pointer"
+              className="absolute top-3 right-3 z-20 text-white bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-full transition-colors cursor-pointer border border-white/20 shadow-md"
               title="Close"
             >
               <X className="h-5 w-5" />
             </button>
 
-            {/* Full-Width Top Hero Banner Image */}
-            <div className="relative w-full h-[180px] sm:h-[210px] md:h-[230px] bg-slate-950 overflow-hidden">
+            {/* Full Maintenance Image Body */}
+            <div className="relative w-full flex items-center justify-center bg-black overflow-hidden p-2">
               <img
                 src="/maintenance_logo.jpg"
-                alt="Website Maintenance Hero Banner"
-                className="w-full h-full object-cover rounded-t-3xl block select-none no-zoom"
+                alt="Website Maintenance"
+                className="w-full h-auto max-h-[70vh] sm:max-h-[75vh] object-contain rounded-t-2xl block select-none no-zoom"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-black/20 pointer-events-none" />
             </div>
 
-            {/* Popup Body Content */}
-            <div className="p-6 sm:p-8 text-center">
-              {/* Popup Title */}
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
-                Website Under Maintenance
-              </h3>
-
-              {/* Popup Message */}
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-6">
-                We are fixing the issue. Please try again shortly.
-              </p>
-
-              {/* Information Notice Pill */}
-              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl p-3.5 mb-6 text-left flex items-start gap-2.5">
-                <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold leading-snug">
-                  Product browsing remains fully accessible. You can continue exploring our collections.
-                </p>
-              </div>
-
-              {/* Action Button */}
+            {/* Bottom Action Button */}
+            <div className="p-4 bg-[#0B1220] border-t border-slate-800/80 flex items-center justify-center">
               <button
                 onClick={closeMaintenancePopup}
-                className="w-full py-3 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/25 active:scale-98 transition-all text-sm tracking-wide cursor-pointer"
+                className="w-full py-3.5 px-6 bg-gradient-to-r from-[#D4A75F] to-[#BF934B] hover:from-[#BF934B] hover:to-[#A87E39] text-white font-bold rounded-2xl shadow-lg shadow-[#D4A75F]/20 active:scale-98 transition-all text-sm sm:text-base tracking-wide cursor-pointer text-center"
               >
                 Understood & Close
               </button>

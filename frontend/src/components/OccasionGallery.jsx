@@ -77,11 +77,18 @@ const ParallaxOccasionCard = ({ item, onExpand, onCollectionClick, index, hasDra
           y: imgY
         }}
       >
-        <img
-          src={item.image}
-          alt={item.title}
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 saturate-[1.1] brightness-[0.85] no-zoom"
-        />
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.title}
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 saturate-[1.1] brightness-[0.85] no-zoom"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#1B0B26] via-[#3F1D5A] to-[#0F071A] flex flex-col items-center justify-center text-center p-4">
+            <Sparkles className="h-10 w-10 text-[#D4A75F] animate-pulse mb-2" />
+          </div>
+        )}
       </motion.div>
 
       {/* Dark overlay with dynamic gradient */}
@@ -145,7 +152,7 @@ export const OccasionGallery = ({ items: propItems, activeCollection, onCollecti
               id: c.id,
               title: c.name || c.title,
               subtitle: c.subtitle || c.description || (language === 'hi' ? 'विशेष संग्रह' : 'Curated Masterpiece'),
-              image: c.image || c.image_url || c.thumbnail_image || "/cat_bridal.png",
+              image: (c.image && !c.image.includes('cat_')) ? c.image : ((c.image_url && !c.image_url.includes('cat_')) ? c.image_url : ((c.thumbnail_image && !c.thumbnail_image.includes('cat_')) ? c.thumbnail_image : null)),
               description: c.description || (language === 'hi' ? 'हमारे नवीनतम संग्रह की खोज करें।' : 'Discover our latest handcrafted collection.'),
               tips: Array.isArray(c.styling_tips) && c.styling_tips.length > 0 ? c.styling_tips : [
                 language === 'hi' ? 'सुंदर लुक के लिए परिधानों के साथ पहनें।' : 'Pair with classic ensembles for timeless luxury.',
@@ -453,14 +460,23 @@ export const OccasionGallery = ({ items: propItems, activeCollection, onCollecti
 
               {/* Left Side: Occasion Canvas */}
               <div className="md:w-3/5 h-[40vh] md:h-auto relative overflow-hidden bg-slate-900 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-800">
-                <motion.img
-                  src={selectedItem.image}
-                  alt={selectedItem.title}
-                  className="w-full h-full object-cover saturate-[1.1] brightness-[0.95]"
-                  initial={{ scale: 1.15 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.8 }}
-                />
+                {selectedItem.image ? (
+                  <motion.img
+                    src={selectedItem.image}
+                    alt={selectedItem.title}
+                    className="w-full h-full object-cover saturate-[1.1] brightness-[0.95]"
+                    initial={{ scale: 1.15 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.8 }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1B0B26] via-[#3F1D5A] to-[#0F071A] flex flex-col items-center justify-center p-6 text-center">
+                    <Sparkles className="h-12 w-12 text-[#D4A75F] animate-pulse mb-3" />
+                    <span className="text-[#D4A75F] text-sm font-serif font-bold uppercase tracking-widest">
+                      {selectedItem.title}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Right Side: Styling Tips & Description */}
