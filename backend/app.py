@@ -55,11 +55,37 @@ app.config.from_object(Config)
 # Enable CORS for frontend requests
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
+import gzip
+import io
+
 @app.after_request
-def add_cors_headers(response):
+def add_cors_and_compress(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+
+    # Gzip response payload compression for text/JSON responses
+    if (
+        response.status_code >= 200
+        and response.status_code < 300
+        and 'Content-Encoding' not in response.headers
+        and not response.direct_passthrough
+    ):
+        accept_encoding = request.headers.get('Accept-Encoding', '')
+        if 'gzip' in accept_encoding.lower():
+            mimetype = response.mimetype or ''
+            if any(t in mimetype for t in ['application/json', 'text/html', 'text/css', 'text/javascript', 'application/javascript']):
+                response_data = response.get_data()
+                if len(response_data) >= 500:
+                    gzip_buffer = io.BytesIO()
+                    with gzip.GzipFile(mode='wb', fileobj=gzip_buffer) as gzip_file:
+                        gzip_file.write(response_data)
+                    compressed_data = gzip_buffer.getvalue()
+                    response.set_data(compressed_data)
+                    response.headers['Content-Encoding'] = 'gzip'
+                    response.headers['Content-Length'] = len(compressed_data)
+                    response.headers['Vary'] = 'Accept-Encoding'
+
     return response
 
 # Allow flexible trailing slashes across all blueprint routes
@@ -159,12 +185,14 @@ def root_verify_otp():
         "success": True
     }), 200
 
-# Ensure static upload directory is served
+# Ensure static upload directory is served with long-term browser caching
 @app.route('/static/uploads/<path:filename>')
 def serve_uploads(filename):
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
     from flask import send_from_directory
-    return send_from_directory(upload_dir, filename)
+    res = send_from_directory(upload_dir, filename)
+    res.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return res
 
 @app.errorhandler(404)
 def not_found(error):

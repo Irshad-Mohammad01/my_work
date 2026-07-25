@@ -210,9 +210,38 @@ class ProductModel(db.Model):
 
         if page is not None or limit is not None:
             from backend.utils.pagination import paginate_query
-            return paginate_query(query, page=page, limit=limit)
-            
+            res = paginate_query(query, page=page, limit=limit)
+            if res.get("items"):
+                raw_items = query.offset((res["current_page"] - 1) * res["page_size"]).limit(res["page_size"]).all()
+                p_ids = [p.id for p in raw_items]
+                if p_ids:
+                    from backend.models.review import ReviewModel
+                    from sqlalchemy import func
+                    counts = dict(
+                        db.session.query(ReviewModel.product_id, func.count(ReviewModel.id))
+                        .filter(ReviewModel.product_id.in_(p_ids))
+                        .group_by(ReviewModel.product_id)
+                        .all()
+                    )
+                    for p in raw_items:
+                        p._prefetched_review_count = counts.get(p.id, 0)
+                res["items"] = [p.to_dict() for p in raw_items]
+            return res
+
         products = query.all()
+        if products:
+            p_ids = [p.id for p in products]
+            from backend.models.review import ReviewModel
+            from sqlalchemy import func
+            counts = dict(
+                db.session.query(ReviewModel.product_id, func.count(ReviewModel.id))
+                .filter(ReviewModel.product_id.in_(p_ids))
+                .group_by(ReviewModel.product_id)
+                .all()
+            )
+            for p in products:
+                p._prefetched_review_count = counts.get(p.id, 0)
+
         return [p.to_dict() for p in products]
 
     @staticmethod

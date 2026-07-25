@@ -102,6 +102,7 @@ export const HighDemandOverlay = () => {
       <video
         ref={videoRef}
         src="/high_demand.mp4"
+        preload="metadata"
         autoPlay
         muted
         loop
