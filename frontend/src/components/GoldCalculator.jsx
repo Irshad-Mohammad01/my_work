@@ -84,7 +84,7 @@ export const GoldCalculator = () => {
   const text = {
     en: {
       title: "Daily Gold & Silver Rate — Central India",
-      subtitle: "Real rates updated once daily at 9:00 AM IST. Jaipur city rates via RapidAPI.",
+      subtitle: "Real rates updated once daily at 9:00 AM IST.",
       goldPrice: "Today's Gold Rate (per gram)",
       weightLabel: "Jewellery Metal Weight",
       purityLabel: "Select Gold Purity",
@@ -95,7 +95,7 @@ export const GoldCalculator = () => {
       liveIndicator: "DAILY UPDATED RATE"
     },
     hi: {
-      title: "दैनिक सोना-चाँदी दर — जयपुर, राजस्थान",
+      title: "दैनिक सोना-चाँदी दर — मध्य भारत",
       subtitle: "रेट प्रतिदिन सुबह 9 बजे IST पर अपडेट होते हैं।",
       goldPrice: "आज की सोने की दर (प्रति ग्राम)",
       weightLabel: "आभूषण धातु का वजन",
