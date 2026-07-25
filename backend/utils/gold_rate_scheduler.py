@@ -32,6 +32,24 @@ IST             = pytz.timezone("Asia/Kolkata")
 FETCH_HOUR_IST  = 9
 
 
+def format_official_update_timestamp(eff_date=None):
+    """
+    Formats the official daily rate update timestamp as: '<DD> <Month> <YYYY>, 09:00 AM IST'
+    (e.g., '25 July 2026, 09:00 AM IST').
+    """
+    if not eff_date:
+        eff_date = datetime.now(IST).date()
+    elif isinstance(eff_date, str):
+        try:
+            eff_date = datetime.strptime(eff_date, "%Y-%m-%d").date()
+        except Exception:
+            eff_date = datetime.now(IST).date()
+    elif isinstance(eff_date, datetime):
+        eff_date = eff_date.date()
+
+    return f"{eff_date.day} {eff_date.strftime('%B %Y')}, 09:00 AM IST"
+
+
 def fetch_and_store_metal_rates():
     """
     Fetches gold and silver rates from RapidAPI via urllib.request,
@@ -39,7 +57,7 @@ def fetch_and_store_metal_rates():
     and marks today's records as `is_latest = True`.
     """
     now_ist = datetime.now(IST)
-    today_str = date.today().strftime("%Y-%m-%d")
+    today_str = now_ist.strftime("%Y-%m-%d")
 
     g22_val = 13534.0
     g24_val = 14211.0
@@ -102,7 +120,7 @@ def fetch_and_store_metal_rates():
             "currency": "INR"
         },
         "rate_date": today_str,
-        "updated_at": now_ist.strftime("%d %B %Y, %I:%M %p IST"),
+        "updated_at": format_official_update_timestamp(today_str),
         "updated_at_iso": now_ist.isoformat(),
     }
 
@@ -205,7 +223,8 @@ def _scheduler_loop(app):
 
 def start_gold_rate_scheduler(app):
     try:
-        today_str = date.today().strftime("%Y-%m-%d")
+        now_ist = datetime.now(IST)
+        today_str = now_ist.strftime("%Y-%m-%d")
         existing = GoldRateModel.query.filter_by(effective_date=today_str, is_latest=True).first()
         if not existing:
             print("[GOLD-SCHEDULER] 🔄 No rates for today in gold_rates table — running initial fetch...")

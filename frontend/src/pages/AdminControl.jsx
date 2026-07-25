@@ -3791,8 +3791,8 @@ export const AdminControl = () => {
                     return (
                       <div key={p._id || p.id} className="border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/20 rounded-xl md:rounded-2xl p-3 md:p-4.5 flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
                         <div>
-                          {/* Product Image, Category and Delete Button Header Row */}
-                          <div className="flex items-start justify-between gap-2 sm:gap-3 mb-3">
+                          {/* Desktop/Tablet Header Row (Hidden on mobile < 768px, visible on md+) */}
+                          <div className="hidden md:flex items-start justify-between gap-2 sm:gap-3 mb-3">
                             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                               <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 flex-shrink-0">
                                 <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'} alt={p.name} className="h-full w-full object-cover" />
@@ -3812,6 +3812,36 @@ export const AdminControl = () => {
                             >
                               <Trash2 className="h-4 w-4 text-white" />
                             </button>
+                          </div>
+
+                          {/* Mobile Header Layout (Visible on mobile < 768px, hidden on md+) */}
+                          <div className="block md:hidden mb-3">
+                            {/* Top row: Image & Category */}
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-955 border border-slate-100 dark:border-slate-800 flex-shrink-0">
+                                <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'} alt={p.name} className="h-full w-full object-cover" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">{p.category}</span>
+                              </div>
+                            </div>
+
+                            {/* Title row */}
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 break-words mt-1 mb-2.5" title={p.name}>
+                              {p.name}
+                            </h4>
+
+                            {/* Delete Button Row (Right aligned, between Title and Pricing Box, 8-12px spacing) */}
+                            <div className="flex justify-end my-2.5">
+                              <button
+                                type="button"
+                                onClick={() => setProductToDelete(p)}
+                                title="Delete Product"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md shadow-red-500/20 hover:scale-105 transition-all duration-200 cursor-pointer flex-shrink-0 z-30"
+                              >
+                                <Trash2 className="h-4 w-4 text-white" />
+                              </button>
+                            </div>
                           </div>
 
                           {/* Price / Discount History */}
@@ -4028,57 +4058,59 @@ export const AdminControl = () => {
                 </div>
 
                 {/* Nested Sub-tabs */}
-                <div className="flex space-x-1 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl mb-8 w-fit border border-slate-200/40 dark:border-slate-800">
-                  <button
-                    onClick={() => setActiveConfigSubTab('banners')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeConfigSubTab === 'banners'
-                        ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                  >
-                    <Image className="h-3.5 w-3.5" />
-                    <span>Carousel Images</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveConfigSubTab('faqs')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeConfigSubTab === 'faqs'
-                        ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    <span>FAQs</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveConfigSubTab('support_links')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeConfigSubTab === 'support_links'
-                        ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                  >
-                    <LinkIcon className="h-3.5 w-3.5" />
-                    <span>Support Links</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveConfigSubTab('reports')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeConfigSubTab === 'reports'
-                        ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                    <span>Report Automation</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveConfigSubTab('homepage')}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeConfigSubTab === 'homepage'
-                        ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                      }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    <span>Homepage Settings</span>
-                  </button>
+                <div className="w-full max-w-full overflow-x-auto rounded-2xl mb-8 border border-slate-200/40 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1.5 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <div className="flex items-center space-x-1 w-max min-w-full">
+                    <button
+                      onClick={() => setActiveConfigSubTab('banners')}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeConfigSubTab === 'banners'
+                          ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                        }`}
+                    >
+                      <Image className="h-3.5 w-3.5" />
+                      <span>Carousel Images</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveConfigSubTab('faqs')}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeConfigSubTab === 'faqs'
+                          ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                        }`}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      <span>FAQs</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveConfigSubTab('support_links')}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeConfigSubTab === 'support_links'
+                          ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                        }`}
+                    >
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      <span>Support Links</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveConfigSubTab('reports')}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeConfigSubTab === 'reports'
+                          ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                        }`}
+                    >
+                      <Settings className="h-3.5 w-3.5" />
+                      <span>Report Automation</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveConfigSubTab('homepage')}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeConfigSubTab === 'homepage'
+                          ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                        }`}
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                      <span>Homepage Settings</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sub-tab 1: Banners Management */}
