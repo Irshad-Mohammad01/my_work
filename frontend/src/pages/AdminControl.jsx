@@ -13,6 +13,9 @@ import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
 
+const AdminPaymentManagement = React.lazy(() => import('../components/AdminPaymentManagement').then(m => ({ default: m.AdminPaymentManagement })));
+
+
 const ACTION_TYPES = [
   "Product Added",
   "Product Updated",
@@ -3229,7 +3232,17 @@ export const AdminControl = () => {
                 Orders Management
               </button>
               <button
+                onClick={() => handleTabChange('payments')}
+                className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'payments'
+                    ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
+                    : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
+                  }`}
+              >
+                Payment Management
+              </button>
+              <button
                 onClick={() => handleTabChange('support')}
+
                 className={`pb-3 px-4 text-sm border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'support'
                     ? 'bg-[rgba(212,167,95,0.15)] text-[#D4A75F] border-[#D4A75F] font-semibold'
                     : 'border-transparent text-slate-600 dark:text-[#B0B7C3] hover:text-[#3F1D5A] dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-transparent rounded-t-lg font-normal'
@@ -4399,6 +4412,22 @@ export const AdminControl = () => {
             {activeTab === 'users' && (
               renderUsersManagement()
             )}
+
+            {/* TAB CONTENT: PAYMENT MANAGEMENT */}
+            {activeTab === 'payments' && (
+              <React.Suspense fallback={
+                <div className="p-12 text-center text-[#D4A75F] bg-[#1B0B26]/80 rounded-2xl border border-[#D4A75F]/20">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-[#D4A75F]" />
+                  Loading Payment Management System...
+                </div>
+              }>
+                <AdminPaymentManagement 
+                  onNavigateToOrder={(ordId) => { setSelectedOrder(orders.find(o => o.order_id === ordId || o.id === ordId) || { order_id: ordId }); }}
+                  onNavigateToCustomer={(custId) => { handleTabChange('users'); }}
+                />
+              </React.Suspense>
+            )}
+
 
             {/* TAB CONTENT: AUDIT LOGS */}
             {activeTab === 'audit' && (
