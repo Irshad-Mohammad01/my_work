@@ -307,10 +307,18 @@ class ProductModel(db.Model):
         collection_id = None
         if collection_input and str(collection_input).lower() not in ["none", "null", "", "no collection", "0"]:
             from backend.models.collection import CollectionModel
-            if str(collection_input).isdigit():
-                coll = CollectionModel.query.get(int(collection_input))
+            from sqlalchemy import func
+            coll_str = str(collection_input).strip()
+            if coll_str.isdigit():
+                coll = CollectionModel.query.get(int(coll_str))
             else:
-                coll = CollectionModel.query.filter_by(name=str(collection_input)).first()
+                coll_lower = coll_str.lower()
+                coll_slug_lower = coll_lower.replace(' ', '-')
+                coll = CollectionModel.query.filter(
+                    (func.lower(CollectionModel.name) == coll_lower) |
+                    (func.lower(CollectionModel.slug) == coll_lower) |
+                    (func.lower(CollectionModel.slug) == coll_slug_lower)
+                ).first()
             if coll:
                 collection_id = coll.id
 
@@ -527,17 +535,29 @@ class ProductModel(db.Model):
                 collection_input = data.get("collection_id") if "collection_id" in data else data.get("collection")
                 if collection_input and str(collection_input).lower() not in ["none", "null", "", "no collection", "0"]:
                     from backend.models.collection import CollectionModel
-                    if str(collection_input).isdigit():
-                        coll = CollectionModel.query.get(int(collection_input))
+                    from sqlalchemy import func
+                    coll_str = str(collection_input).strip()
+                    if coll_str.isdigit():
+                        coll = CollectionModel.query.get(int(coll_str))
                     else:
-                        coll = CollectionModel.query.filter_by(name=str(collection_input)).first()
+                        coll_lower = coll_str.lower()
+                        coll_slug_lower = coll_lower.replace(' ', '-')
+                        coll = CollectionModel.query.filter(
+                            (func.lower(CollectionModel.name) == coll_lower) |
+                            (func.lower(CollectionModel.slug) == coll_lower) |
+                            (func.lower(CollectionModel.slug) == coll_slug_lower)
+                        ).first()
                     if coll:
                         old_coll = product.collection.name if product.collection else "None"
                         log_change("Product Update", "collection", old_coll, coll.name)
                         product.collection_id = coll.id
                     else:
+                        old_coll = product.collection.name if product.collection else "None"
+                        log_change("Product Update", "collection", old_coll, "None")
                         product.collection_id = None
                 else:
+                    old_coll = product.collection.name if product.collection else "None"
+                    log_change("Product Update", "collection", old_coll, "None")
                     product.collection_id = None
             if "ratings" in data: product.ratings = float(data["ratings"])
             if "status" in data:

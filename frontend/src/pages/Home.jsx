@@ -1610,6 +1610,9 @@ export const Home = () => {
         if (activeCategory && activeCategory !== 'All') {
           params.push(`category=${encodeURIComponent(activeCategory)}`);
         }
+        if (activeCollection && activeCollection !== 'All') {
+          params.push(`collection=${encodeURIComponent(activeCollection)}`);
+        }
         if (activeSearch) {
           params.push(`search=${encodeURIComponent(activeSearch)}`);
         }
@@ -1630,8 +1633,15 @@ export const Home = () => {
         if (activeSearch) {
           setAllProductsLoading(true);
           let allUrl = `${API_BASE_URL}/products`;
+          const allParams = [];
           if (activeCategory && activeCategory !== 'All') {
-            allUrl += `?category=${encodeURIComponent(activeCategory)}`;
+            allParams.push(`category=${encodeURIComponent(activeCategory)}`);
+          }
+          if (activeCollection && activeCollection !== 'All') {
+            allParams.push(`collection=${encodeURIComponent(activeCollection)}`);
+          }
+          if (allParams.length > 0) {
+            allUrl += `?${allParams.join('&')}`;
           }
           const allResponse = await axios.get(allUrl);
           let allFetched = allResponse.data || [];

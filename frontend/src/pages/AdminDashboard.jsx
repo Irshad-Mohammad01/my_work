@@ -1321,6 +1321,7 @@ export const AdminDashboard = () => {
       await axios.put(`${API_BASE_URL}/products/${editingProduct._id}`, {
         name: editingProduct.name,
         category: editingProduct.category,
+        collection: editingProduct.collection || '',
         price: parseFloat(editingProduct.price),
         discount: parseInt(editingProduct.discount) || 0,
         stock: parseInt(editingProduct.stock),
@@ -1338,6 +1339,7 @@ export const AdminDashboard = () => {
       alert("Product updated successfully!");
       setEditingProduct(null);
       fetchProducts();
+      if (typeof fetchCollections === 'function') fetchCollections();
     } catch (err) {
       console.error(err);
       alert("Failed to update product details.");

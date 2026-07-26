@@ -2209,6 +2209,7 @@ export const AdminControl = () => {
       await axios.post(`${API_BASE_URL}/products`, {
         name: newProduct.name,
         category: newProduct.category,
+        collection: newProduct.collection || '',
         price: parseFloat(newProduct.price),
         discount: parseInt(newProduct.discount) || 0,
         stock: parseInt(newProduct.stock),
@@ -2231,6 +2232,7 @@ export const AdminControl = () => {
       setNewProduct({
         name: '',
         category: 'Rings',
+        collection: '',
         price: '',
         discount: 0,
         stock: '',
@@ -2246,6 +2248,7 @@ export const AdminControl = () => {
       setNewProductImages(INITIAL_IMAGE_SLOTS);
       setFormLang('en');
       fetchProducts();
+      fetchCollections();
       fetchStats();
     } catch (err) {
       console.error(err);
@@ -2266,6 +2269,7 @@ export const AdminControl = () => {
       await axios.put(`${API_BASE_URL}/products/${editingProduct._id}`, {
         name: editingProduct.name,
         category: editingProduct.category,
+        collection: editingProduct.collection || '',
         price: parseFloat(editingProduct.price),
         discount: parseInt(editingProduct.discount) || 0,
         stock: parseInt(editingProduct.stock),
@@ -2283,6 +2287,7 @@ export const AdminControl = () => {
       alert("Product updated successfully!");
       setEditingProduct(null);
       fetchProducts();
+      fetchCollections();
     } catch (err) {
       console.error(err);
       alert("Failed to update product details.");
