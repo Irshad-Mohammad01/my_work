@@ -20,6 +20,19 @@ export const HighDemandOverlay = () => {
 
   const shouldShowOverlay = isHighDemandMode && !isExemptAdmin;
 
+  const attemptPlay = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.defaultMuted = true;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("[HIGH_DEMAND] Video autoplay caught:", err);
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     if (!shouldShowOverlay) return;
 
@@ -27,7 +40,7 @@ export const HighDemandOverlay = () => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Intercept and block all key events (keyboard navigation, shortcuts)
+    // Intercept and block keyboard navigation / shortcuts
     const handleKeyDown = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -48,27 +61,13 @@ export const HighDemandOverlay = () => {
       return false;
     };
 
-    // Intercept all pointer / click events
-    const handlePointerEvent = (e) => {
-      e.stopPropagation();
-    };
-
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     window.addEventListener('contextmenu', handleContextMenu, { capture: true });
     window.addEventListener('wheel', handleScrollTouch, { capture: true, passive: false });
     window.addEventListener('touchmove', handleScrollTouch, { capture: true, passive: false });
-    window.addEventListener('click', handlePointerEvent, { capture: true });
-    window.addEventListener('mousedown', handlePointerEvent, { capture: true });
-    window.addEventListener('mouseup', handlePointerEvent, { capture: true });
-    window.addEventListener('touchstart', handlePointerEvent, { capture: true });
-    window.addEventListener('touchend', handlePointerEvent, { capture: true });
 
     // Attempt video play programmatically to ensure autoplay success across all browsers
-    if (videoRef.current) {
-      videoRef.current.play().catch(err => {
-        console.warn("[HIGH_DEMAND] Video autoplay caught:", err);
-      });
-    }
+    attemptPlay();
 
     return () => {
       document.body.style.overflow = originalOverflow;
@@ -76,20 +75,23 @@ export const HighDemandOverlay = () => {
       window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
       window.removeEventListener('wheel', handleScrollTouch, { capture: true });
       window.removeEventListener('touchmove', handleScrollTouch, { capture: true });
-      window.removeEventListener('click', handlePointerEvent, { capture: true });
-      window.removeEventListener('mousedown', handlePointerEvent, { capture: true });
-      window.removeEventListener('mouseup', handlePointerEvent, { capture: true });
-      window.removeEventListener('touchstart', handlePointerEvent, { capture: true });
-      window.removeEventListener('touchend', handlePointerEvent, { capture: true });
     };
   }, [shouldShowOverlay]);
 
   if (!shouldShowOverlay) return null;
 
+  const handleContainerTap = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    attemptPlay();
+  };
+
   return (
     <div
       tabIndex={-1}
-      className="fixed inset-0 top-0 left-0 w-screen h-screen z-[999999] bg-black overflow-hidden select-none pointer-events-auto flex items-center justify-center"
+      onClick={handleContainerTap}
+      onTouchEnd={handleContainerTap}
+      className="fixed inset-0 top-0 left-0 w-screen h-screen z-[999999] bg-black overflow-hidden select-none pointer-events-auto flex items-center justify-center cursor-pointer"
       style={{
         width: '100vw',
         height: '100vh',
@@ -102,11 +104,18 @@ export const HighDemandOverlay = () => {
       <video
         ref={videoRef}
         src="/high_demand.mp4"
-        preload="metadata"
+        preload="auto"
         autoPlay
         muted
+        defaultMuted
         loop
         playsInline
+        webkit-playsinline="true"
+        disablePictureInPicture
+        controls={false}
+        onLoadedMetadata={attemptPlay}
+        onCanPlay={attemptPlay}
+        onLoadedData={attemptPlay}
         className="w-full h-full object-contain md:object-cover block select-none pointer-events-none"
         style={{
           width: '100%',
@@ -116,3 +125,5 @@ export const HighDemandOverlay = () => {
     </div>
   );
 };
+
+
