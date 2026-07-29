@@ -6,7 +6,8 @@ import { formatPrice } from '../utils/priceFormatter';
 import { API_BASE_URL } from '../context/AuthContext';
 
 const getGoldRateUrl = () => {
-  return API_BASE_URL.endsWith('/api') ? `${API_BASE_URL}/gold-rate` : `${API_BASE_URL}/api/gold-rate`;
+  const baseUrl = API_BASE_URL.endsWith('/api') ? `${API_BASE_URL}/gold-rate` : `${API_BASE_URL}/api/gold-rate`;
+  return `${baseUrl}?_t=${Date.now()}`;
 };
 
 export const GoldCalculator = () => {
