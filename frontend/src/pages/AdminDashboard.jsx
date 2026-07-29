@@ -728,13 +728,14 @@ export const AdminDashboard = () => {
   };
 
   const handleOrderTrackingUpdate = async (orderId, trackingData) => {
-    if (trackingData.status === 'Out for Delivery' && (!trackingData.tracking_url && !selectedOrder?.tracking_url)) {
+    if (trackingData.status === 'Out for Delivery' && (!trackingData.tracking_url || !trackingData.tracking_id)) {
+      const order = orders.find(o => String(o._id || o.id) === String(orderId)) || selectedOrder;
       setTrackingModalConfig({
         isOpen: true,
         orderId,
         targetStatus: 'Out for Delivery',
-        initialUrl: trackingData.tracking_url || selectedOrder?.tracking_url || '',
-        initialId: trackingData.tracking_id || selectedOrder?.tracking_id || '',
+        initialUrl: trackingData.tracking_url || order?.tracking_url || '',
+        initialId: trackingData.tracking_id || order?.tracking_id || '',
         isEditing: false
       });
       return;
@@ -890,6 +891,10 @@ export const AdminDashboard = () => {
   };
 
   const handleUpdateProductOrderStatus = async (dbOrderId, newStatus) => {
+    if (newStatus === 'Out for Delivery') {
+      handleOrderStatusUpdate(dbOrderId, newStatus);
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/orders/${dbOrderId}/status`, {
@@ -1414,6 +1419,10 @@ export const AdminDashboard = () => {
           tracking_url: payload.tracking_url || prev.tracking_url,
           tracking_id: payload.tracking_id || prev.tracking_id
         } : null);
+        setModalTracking(prev => ({
+          ...prev,
+          status: newStatus
+        }));
       }
       setTrackingModalConfig({ isOpen: false, orderId: null, targetStatus: null, initialUrl: '', initialId: '', isEditing: false });
     } catch (err) {
@@ -2543,7 +2552,14 @@ export const AdminDashboard = () => {
                     <label className="block text-slate-400 font-semibold mb-1">Fulfillment Status</label>
                     <select
                       value={modalTracking.status}
-                      onChange={(e) => setModalTracking({ ...modalTracking, status: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setModalTracking(prev => ({ ...prev, status: val }));
+                        if (val === 'Out for Delivery') {
+                          const orderId = selectedOrder._id || selectedOrder.id;
+                          handleOrderStatusUpdate(orderId, 'Out for Delivery');
+                        }
+                      }}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl focus:outline-none text-slate-850 dark:text-slate-100"
                     >
                       <option value="Pending">Pending</option>
