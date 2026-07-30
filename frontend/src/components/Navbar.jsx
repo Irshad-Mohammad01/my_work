@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Search, ShoppingCart, Heart, ClipboardList, Sun, Moon, LogIn, LogOut, Shield, Menu, X, User, Globe, Settings, Bell, Check, Trash2, Clock, AlertTriangle, DollarSign, MessageSquare, Home, Sparkles, Info, Mail, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -266,13 +266,24 @@ export const Navbar = () => {
     if (cat === 'All') {
       navigate('/');
     } else {
-      navigate(`/?category=${cat}`);
+      navigate(`/?category=${encodeURIComponent(cat)}`);
+    }
+  };
+
+  const handleCollectionSelect = (collName) => {
+    setShowCategoryMenu(false);
+    setMobileMenuOpen(false);
+    if (collName === 'All') {
+      navigate('/');
+    } else {
+      navigate(`/?collection=${encodeURIComponent(collName)}`);
     }
   };
 
   const [navCategories, setNavCategories] = useState([]);
+  const [navCollections, setNavCollections] = useState([]);
 
-  useEffect(() => {
+  const fetchNavData = useCallback(() => {
     let isMounted = true;
     axios.get(`${API_BASE_URL}/products/categories`)
       .then(res => {
@@ -281,8 +292,28 @@ export const Navbar = () => {
         }
       })
       .catch(err => console.error("Error fetching navbar categories:", err));
+
+    axios.get(`${API_BASE_URL}/collections`)
+      .then(res => {
+        if (isMounted && res.data) {
+          setNavCollections(res.data.filter(c => c.is_active !== false));
+        }
+      })
+      .catch(err => console.error("Error fetching navbar collections:", err));
+
     return () => { isMounted = false; };
   }, []);
+
+  useEffect(() => {
+    fetchNavData();
+  }, [fetchNavData]);
+
+  // Re-fetch when mobile drawer opens to automatically sync admin additions/updates/deletions
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      fetchNavData();
+    }
+  }, [mobileMenuOpen, fetchNavData]);
 
   const categories = [
     { code: 'All', label: t('common.all') },
@@ -1410,33 +1441,33 @@ export const Navbar = () => {
                   </Link>
                 </div>
 
-                {/* COLLECTIONS */}
-                <div className="py-5 space-y-3.5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Collections</span>
-                  <button 
-                    onClick={() => handleCategorySelect('Bridal Collection')} 
-                    className="flex items-center w-full gap-3 text-sm font-semibold text-left transition-colors bg-transparent border-none cursor-pointer text-slate-350 hover:text-white"
-                  >
-                    <Sparkles className="h-4.5 w-4.5 text-[#D4A75F]" />
-                    <span>Bridal Collection</span>
-                  </button>
-                  <button 
-                    onClick={() => handleCategorySelect('Rings')} 
-                    className="flex items-center w-full gap-3 text-sm font-semibold text-left transition-colors bg-transparent border-none cursor-pointer text-slate-350 hover:text-white"
-                  >
-                    <Sparkles className="h-4.5 w-4.5 text-[#D4A75F]" />
-                    <span>Solitaire Rings</span>
-                  </button>
-                </div>
+                {/* COLLECTIONS (Dynamic from DB only) */}
+                {navCollections && navCollections.length > 0 && (
+                  <div className="py-5 space-y-3.5">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Collections</span>
+                    <div className="space-y-1">
+                      {navCollections.map((coll, idx) => (
+                        <button 
+                          key={coll.id || coll._id || idx}
+                          onClick={() => handleCollectionSelect(coll.name || coll.title)} 
+                          className="flex items-center w-full gap-3 text-sm font-semibold text-left transition-colors bg-transparent border-none cursor-pointer text-slate-350 hover:text-white py-1.5"
+                        >
+                          <Sparkles className="h-4.5 w-4.5 text-[#D4A75F]" />
+                          <span>{coll.name || coll.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* CATEGORIES */}
+                {/* CATEGORIES (Dynamic from DB only) */}
                 {navCategories && navCategories.length > 0 && (
                   <div className="py-5 space-y-3.5">
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Categories</span>
                     <div className="grid grid-cols-2 gap-2">
                       {navCategories.map((cat, idx) => (
                         <button
-                          key={cat.id || idx}
+                          key={cat.id || cat._id || idx}
                           onClick={() => handleCategorySelect(cat.name)}
                           className="py-2 px-2 text-[11px] font-semibold text-slate-300 bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 rounded-lg transition-all cursor-pointer text-center truncate"
                         >
