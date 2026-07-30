@@ -89,7 +89,9 @@ export const MyOrders = () => {
     setOrdersError('');
     try {
       const response = await axios.get(`${API_BASE_URL}/orders`);
-      const sorted = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const rawData = Array.isArray(response.data) ? response.data : (response.data?.items || []);
+      console.log('[DEBUG Frontend MyOrders] Received API orders:', rawData.map(o => ({ order_id: o.order_id, status: o.status, tracking_id: o.tracking_id, tracking_url: o.tracking_url })));
+      const sorted = rawData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setOrders(sorted);
     } catch (err) {
       console.error(err);
