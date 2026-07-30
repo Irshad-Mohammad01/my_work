@@ -599,14 +599,14 @@ export const AdminDashboard = () => {
           <div className="flex gap-2.5 w-full xl:w-auto justify-end">
             <button
               onClick={handleMarkAllNotifAsRead}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-xl shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              <Check className="h-4 w-4 text-emerald-500" />
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <span>Mark All Read</span>
             </button>
             <button
               onClick={handleClearReadNotif}
-              className="flex items-center gap-1.5 px-4 py-2 bg-rose-555 hover:bg-rose-600 text-xs font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white rounded-xl shadow-xs transition-all cursor-pointer border-none"
             >
               <Trash2 className="h-4 w-4" />
               <span>Clear Read</span>
@@ -616,41 +616,41 @@ export const AdminDashboard = () => {
 
         {/* Notifications Grid / List */}
         {filteredNotifs.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-12 text-center">
-            <Bell className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4 opacity-45" />
-            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-350">No notifications found</h4>
-            <p className="text-xs text-slate-400 dark:text-slate-505 mt-1">Try clearing filters or search terms.</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center">
+            <Bell className="h-12 w-12 mx-auto text-slate-400 dark:text-slate-500 mb-4 opacity-50" />
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No notifications found</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try clearing filters or search terms.</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
-              <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex justify-between items-center">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Showing {filteredNotifs.length} of {validNotifs.length} notifications
               </span>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-850">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredNotifs.map((n) => {
                 const isUnread = n.status === 'unread';
                 const getStyles = (type) => {
                   switch (type) {
                     case 'SUPPORT_TICKET':
                       return {
-                        bg: 'bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/20',
+                        bg: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300',
                         icon: <MessageSquare className="h-5 w-5" />
                       };
                     case 'BUY_REQUEST':
                       return {
-                        bg: 'bg-rose-500/10 text-rose-500 dark:bg-rose-500/20',
+                        bg: 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/25 dark:text-rose-300',
                         icon: <ShoppingBag className="h-5 w-5" />
                       };
                     case 'LOW_STOCK':
                       return {
-                        bg: 'bg-amber-500/10 text-amber-500 dark:bg-amber-500/20',
+                        bg: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300',
                         icon: <AlertTriangle className="h-5 w-5" />
                       };
                     default:
                       return {
-                        bg: 'bg-slate-500/10 text-slate-500 dark:bg-slate-500/20',
+                        bg: 'bg-slate-500/15 text-slate-800 dark:bg-slate-500/25 dark:text-slate-200',
                         icon: <Bell className="h-5 w-5" />
                       };
                   }
@@ -670,7 +670,7 @@ export const AdminDashboard = () => {
                     key={n.id}
                     onClick={handleCardClick}
                     className={`p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors cursor-pointer ${
-                      isUnread ? 'bg-emerald-50/10 dark:bg-emerald-950/2' : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'
+                      isUnread ? 'bg-[#D4A75F]/10 dark:bg-[#D4A75F]/10 hover:bg-[#D4A75F]/15 dark:hover:bg-[#D4A75F]/15' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex gap-4 items-start min-w-0 flex-1">
@@ -679,21 +679,21 @@ export const AdminDashboard = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${styles.bg}`}>
+                          <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md ${styles.bg}`}>
                             {n.type}
                           </span>
                           {isUnread && (
                             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                           )}
                         </div>
-                        <h4 className={`text-sm font-bold mt-1.5 ${isUnread ? 'text-slate-850 dark:text-slate-100 font-extrabold' : 'text-slate-650 dark:text-slate-350'}`}>
+                        <h4 className={`text-sm mt-1.5 ${isUnread ? 'text-slate-950 dark:text-slate-100 font-extrabold' : 'text-slate-800 dark:text-slate-300 font-bold'}`}>
                           {n.title}
                         </h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed whitespace-pre-line">
+                        <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 leading-relaxed font-medium whitespace-pre-line">
                           {n.description}
                         </p>
-                        <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                          <span className="flex items-center gap-1">
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1 font-bold">
                             <Clock className="h-3.5 w-3.5" />
                             {n.created_at ? new Date(n.created_at).toLocaleString() : 'N/A'}
                           </span>
@@ -705,14 +705,14 @@ export const AdminDashboard = () => {
                       {isUnread ? (
                         <button
                           onClick={() => handleMarkNotifAsRead(n.id)}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer border-none shadow-xs"
                         >
                           <Check className="h-3.5 w-3.5" />
                           <span>Mark as Read</span>
                         </button>
                       ) : (
-                        <span className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-450 font-bold rounded-xl text-xs border border-slate-200/50 dark:border-slate-700/50">
-                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        <span className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs border border-slate-200 dark:border-slate-700">
+                          <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>Read</span>
                         </span>
                       )}

@@ -431,27 +431,27 @@ export const Navbar = () => {
                             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                             className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-[#F2E8D9] dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden origin-top-right"
                           >
-                            <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-[#F2E8D9]/50 dark:border-slate-800/80 flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold tracking-wide uppercase text-slate-850 dark:text-slate-100">{t('navbar.notifications')}</span>
+                            <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-[#F2E8D9] dark:border-slate-800 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black tracking-wider uppercase text-slate-900 dark:text-slate-100">{t('navbar.notifications')}</span>
                               {unreadCount > 0 && (
-                                <span className="bg-[#D4A75F] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                                <span className="bg-[#D4A75F] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
                                   {unreadCount}
                                 </span>
                               )}
                             </div>
-                            <div className="flex gap-2 text-[10px] font-extrabold">
+                            <div className="flex items-center gap-2 text-xs font-bold">
                               <button
                                 onClick={handleMarkAllAsRead}
-                                className="text-[#D4A75F] hover:underline cursor-pointer bg-transparent border-none"
+                                className="text-[#b88c46] hover:text-[#8c672b] dark:text-[#D4A75F] dark:hover:text-amber-300 hover:underline cursor-pointer bg-transparent border-none font-bold transition-colors text-[11px]"
                                 title={t('navbar.mark_all_read')}
                               >
                                 {t('navbar.mark_all_read')}
                               </button>
-                              <span className="text-slate-300 dark:text-slate-700">|</span>
+                              <span className="text-slate-400 dark:text-slate-600 font-bold">|</span>
                               <button
                                 onClick={handleClearRead}
-                                className="bg-transparent border-none cursor-pointer text-slate-500 hover:text-rose-500 dark:text-slate-400 hover:underline"
+                                className="bg-transparent border-none cursor-pointer text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 font-bold hover:underline transition-colors text-[11px]"
                                 title={t('navbar.clear_read')}
                               >
                                 {t('navbar.clear_read')}
@@ -459,11 +459,11 @@ export const Navbar = () => {
                             </div>
                           </div>
 
-                          <div className="overflow-y-auto divide-y max-h-85 divide-slate-100 dark:divide-slate-850">
+                          <div className="overflow-y-auto divide-y max-h-85 divide-slate-100 dark:divide-slate-800">
                             {displayedNotifications.length === 0 ? (
-                              <div className="py-8 text-center text-slate-400 dark:text-slate-550">
-                                <Bell className="w-8 h-8 mx-auto mb-2 opacity-30 animate-bounce" />
-                                <p className="text-xs font-semibold">{t('navbar.no_notifications')}</p>
+                              <div className="py-10 text-center text-slate-500 dark:text-slate-400">
+                                <Bell className="w-8 h-8 mx-auto mb-2 text-slate-400 dark:text-slate-500 opacity-60 animate-bounce" />
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('navbar.no_notifications')}</p>
                               </div>
                             ) : (
                               displayedNotifications.map((n) => {
@@ -473,22 +473,22 @@ export const Navbar = () => {
                                     switch (notif.type) {
                                       case 'SUPPORT_TICKET':
                                         return {
-                                          bg: 'bg-indigo-555/10 text-indigo-500 dark:bg-indigo-500/20',
+                                          bg: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300',
                                           icon: <MessageSquare className="w-4 h-4" />
                                         };
                                       case 'BUY_REQUEST':
                                         return {
-                                          bg: 'bg-rose-500/10 text-rose-500 dark:bg-rose-500/20',
+                                          bg: 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/25 dark:text-rose-300',
                                           icon: <ShoppingBag className="w-4 h-4" />
                                         };
                                       case 'LOW_STOCK':
                                         return {
-                                          bg: 'bg-amber-500/10 text-amber-500 dark:bg-amber-500/20',
+                                          bg: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300',
                                           icon: <AlertTriangle className="w-4 h-4" />
                                         };
                                       default:
                                         return {
-                                          bg: 'bg-slate-500/10 text-slate-500 dark:bg-slate-500/20',
+                                          bg: 'bg-slate-500/15 text-slate-800 dark:bg-slate-500/25 dark:text-slate-200',
                                           icon: <Bell className="w-4 h-4" />
                                         };
                                     }
@@ -498,24 +498,24 @@ export const Navbar = () => {
 
                                     if (title.includes('support') || title.includes('ticket') || title.includes('reply') || msg.includes('support') || msg.includes('ticket')) {
                                       return {
-                                        bg: 'bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/20',
+                                        bg: 'bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-300',
                                         icon: <MessageSquare className="w-4 h-4" />
                                       };
                                     }
                                     if (title.includes('buy request') || title.includes('request to buy') || msg.includes('buy request') || msg.includes('request to buy') || title.includes('request status')) {
                                       return {
-                                        bg: 'bg-rose-500/10 text-rose-500 dark:bg-rose-500/20',
+                                        bg: 'bg-rose-500/15 text-rose-700 dark:bg-rose-500/25 dark:text-rose-300',
                                         icon: <ShoppingBag className="w-4 h-4" />
                                       };
                                     }
                                     if (title.includes('order') || msg.includes('order')) {
                                       return {
-                                        bg: 'bg-[#D4A75F]/10 text-[#D4A75F] dark:bg-[#D4A75F]/20',
+                                        bg: 'bg-[#D4A75F]/15 text-[#967133] dark:bg-[#D4A75F]/25 dark:text-[#D4A75F]',
                                         icon: <ShoppingCart className="w-4 h-4" />
                                       };
                                     }
                                     return {
-                                      bg: 'bg-slate-500/10 text-slate-500 dark:bg-slate-500/20',
+                                      bg: 'bg-slate-500/15 text-slate-800 dark:bg-slate-500/25 dark:text-slate-200',
                                       icon: <Bell className="w-4 h-4" />
                                     };
                                   }
@@ -552,7 +552,7 @@ export const Navbar = () => {
                                   <div
                                     key={n.id}
                                     onClick={handleNotificationClick}
-                                    className={`p-3.5 flex gap-3 items-start transition-colors cursor-pointer text-left ${isUnread ? 'bg-[#D4A75F]/5 dark:bg-[#D4A75F]/5 font-semibold' : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'
+                                    className={`p-3.5 flex gap-3 items-start transition-colors cursor-pointer text-left ${isUnread ? 'bg-[#D4A75F]/10 dark:bg-[#D4A75F]/10 hover:bg-[#D4A75F]/15 dark:hover:bg-[#D4A75F]/15' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                                       }`}
                                   >
                                     <div className={`p-2 rounded-xl flex-shrink-0 ${styles.bg}`}>
@@ -560,15 +560,15 @@ export const Navbar = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-baseline gap-1.5">
-                                        <p className={`text-xs font-bold truncate ${isUnread ? 'text-slate-850 dark:text-slate-105' : 'text-slate-500 dark:text-slate-450'}`}>
+                                        <p className={`text-xs truncate ${isUnread ? 'text-slate-950 dark:text-slate-100 font-extrabold' : 'text-slate-800 dark:text-slate-300 font-bold'}`}>
                                           {n.title}
                                         </p>
-                                        <span className="text-[9px] font-semibold text-slate-450 dark:text-slate-555 flex-shrink-0 flex items-center gap-0.5">
+                                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-shrink-0 flex items-center gap-0.5">
                                           <Clock className="h-2.5 w-2.5" />
                                           {formatTimeAgo(n.created_at)}
                                         </span>
                                       </div>
-                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                      <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed font-medium">
                                         {n.description || n.message}
                                       </p>
 
@@ -578,12 +578,12 @@ export const Navbar = () => {
                                           {isUnread ? (
                                             <button
                                               onClick={(e) => handleMarkAsRead(n.id, e)}
-                                              className="text-[9px] font-extrabold text-white bg-[#D4A75F] hover:bg-[#BF934B] px-2 py-0.5 rounded-lg transition-colors cursor-pointer border-none"
+                                              className="text-[10px] font-extrabold text-white bg-[#3F1D5A] hover:bg-[#D4A75F] active:scale-95 px-2.5 py-1 rounded-lg transition-all cursor-pointer border-none shadow-xs"
                                             >
                                               Mark as read
                                             </button>
                                           ) : (
-                                            <span className="text-[9px] font-extrabold text-[#D4A75F] flex items-center gap-0.5 bg-[#D4A75F]/10 dark:bg-[#D4A75F]/15 px-1.5 py-0.5 rounded-lg">
+                                            <span className="text-[10px] font-extrabold text-[#967133] dark:text-[#D4A75F] flex items-center gap-1 bg-[#D4A75F]/15 dark:bg-[#D4A75F]/20 px-2 py-0.5 rounded-lg border border-[#D4A75F]/20">
                                               <Check className="w-3 h-3" />
                                               <span>Read</span>
                                             </span>
