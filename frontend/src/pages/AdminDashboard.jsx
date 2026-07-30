@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useContext, Suspense, lazy, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -86,6 +86,28 @@ export const AdminDashboard = () => {
     const tab = getTabFromUrl();
     setActiveTab(tab);
   }, [location.search]);
+
+  // Mobile horizontal scrollable navigation tab references & auto-scroll into view
+  const mobileTabsContainerRef = useRef(null);
+  const activeTabRef = useRef(null);
+
+  useEffect(() => {
+    if (mobileTabsContainerRef.current && activeTabRef.current) {
+      const container = mobileTabsContainerRef.current;
+      const activeEl = activeTabRef.current;
+      
+      const containerWidth = container.clientWidth;
+      const activeElWidth = activeEl.clientWidth;
+      const activeElOffsetLeft = activeEl.offsetLeft;
+
+      const scrollTarget = activeElOffsetLeft - (containerWidth / 2) + (activeElWidth / 2);
+      
+      container.scrollTo({
+        left: Math.max(0, scrollTarget),
+        behavior: 'smooth'
+      });
+    }
+  }, [activeTab]);
   const [stats, setStats] = useState({
     total_users: 0,
     total_products: 0,
@@ -1549,7 +1571,58 @@ export const AdminDashboard = () => {
             </div>
 
             {/* Dashboard Tabs navigation */}
-            <div className="flex flex-wrap gap-1 md:space-x-2 border-b border-slate-200 dark:border-slate-800 pb-px mb-8">
+            {/* Mobile Only (Below 1024px): Single Row Horizontal Scrollable Navigation */}
+            <div className="lg:hidden mb-6 w-full">
+              <div 
+                ref={mobileTabsContainerRef}
+                className="flex items-center gap-2.5 overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap no-scrollbar py-2.5 px-1 scroll-smooth ios-smooth-scroll"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none'
+                }}
+              >
+                {[
+                  { id: 'overview', label: 'Analytics' },
+                  { id: 'products', label: 'Products' },
+                  { id: 'orders', label: 'Orders' },
+                  { id: 'buy-requests', label: 'Buy Requests' },
+                  { id: 'users', label: 'Users' },
+                  { id: 'support', label: 'Messages' },
+                  { id: 'audit', label: 'Audit Trail' },
+                  { id: 'notifications', label: 'Notifications' }
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      ref={isActive ? activeTabRef : null}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex-shrink-0 min-h-[44px] px-4 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all duration-200 select-none cursor-pointer border-none ${
+                        isActive
+                          ? 'bg-[#D4A75F] text-white font-bold shadow-md shadow-[#D4A75F]/30 scale-[1.02]'
+                          : 'bg-transparent text-slate-800 dark:text-slate-200 hover:bg-[#D4A75F]/15 hover:text-[#D4A75F] dark:hover:bg-[#D4A75F]/20 dark:hover:text-[#D4A75F]'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      {tab.id === 'buy-requests' && buyRequests.some(r => r.status === 'Pending') && (
+                        <span className={`text-[9px] font-black h-4 w-4 flex items-center justify-center rounded-full animate-pulse ${
+                          isActive ? 'bg-white text-[#D4A75F]' : 'bg-rose-500 text-white'
+                        }`}>
+                          {buyRequests.filter(r => r.status === 'Pending').length}
+                        </span>
+                      )}
+                      {tab.id === 'notifications' && notifications.some(n => n.status === 'unread') && (
+                        <span className={`h-2 w-2 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500'}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Desktop Navigation (1024px and above) */}
+            <div className="hidden lg:flex flex-wrap gap-1 md:space-x-2 border-b border-slate-200 dark:border-slate-800 pb-px mb-8">
               <button
                 onClick={() => handleTabChange('overview')}
                 className={`pb-3 px-3 md:px-4 text-xs md:text-sm border-b-2 transition-all duration-200 ${
@@ -1740,48 +1813,50 @@ export const AdminDashboard = () => {
                   <span>Product Audit Trail Logs ({auditLogs.length})</span>
                 </h3>
 
-                <table className="w-full text-left text-xs min-w-[800px]">
+                <table className="w-full text-left text-xs min-w-[800px] border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase font-bold">
-                      <th className="py-2.5">Date & Time (IST)</th>
-                      <th className="py-2.5">Product</th>
-                      <th className="py-2.5">Admin ID</th>
-                      <th className="py-2.5">Action Type</th>
-                      <th className="py-2.5">Field Changed</th>
-                      <th className="py-2.5 text-right">Old Value</th>
-                      <th className="py-2.5 text-right">New Value</th>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase font-bold align-middle">
+                      <th className="py-2.5 px-3 text-left align-middle">Date & Time (IST)</th>
+                      <th className="py-2.5 px-3 text-left align-middle">Product</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Admin ID</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Action Type</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Field Changed</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Old Value</th>
+                      <th className="py-2.5 px-3 text-center align-middle">New Value</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
                     {auditLogs.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
-                        <td className="py-3.5 text-slate-500 admin-timestamp-text">
+                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 h-12 align-middle">
+                        <td className="py-3.5 px-3 text-left align-middle text-slate-500 dark:text-slate-400 admin-timestamp-text whitespace-nowrap">
                           {log.created_at ? new Date(log.created_at).toLocaleString() : "N/A"}
                         </td>
-                        <td className="py-3.5 font-bold text-slate-800 dark:text-slate-100">
+                        <td className="py-3.5 px-3 text-left align-middle font-bold text-slate-800 dark:text-white">
                           {log.product_name}
                         </td>
-                        <td className="py-3.5 text-slate-500 font-mono">
+                        <td className="py-3.5 px-3 text-center align-middle text-slate-500 dark:text-white font-mono">
                           {log.admin_id || "N/A"}
                         </td>
-                        <td className="py-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            log.action_type?.includes("Creation")
-                              ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
-                              : log.action_type?.includes("Delete")
-                              ? 'text-rose-500 bg-rose-500/10 border-rose-500/20'
-                              : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
-                          }`}>
-                            {log.action_type}
-                          </span>
+                        <td className="py-3.5 px-3 text-center align-middle">
+                          <div className="flex items-center justify-center">
+                            <span className={`inline-flex items-center justify-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold border w-auto ${
+                              log.action_type?.includes("Creation")
+                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+                                : log.action_type?.includes("Delete")
+                                ? 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+                                : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+                            }`}>
+                              {log.action_type}
+                            </span>
+                          </div>
                         </td>
-                        <td className="py-3.5 text-slate-500">
+                        <td className="py-3.5 px-3 text-center align-middle text-slate-500 dark:text-white">
                           {log.field_name || "N/A"}
                         </td>
-                        <td className="py-3.5 text-right text-rose-500 max-w-[150px] truncate" title={log.old_value}>
+                        <td className="py-3.5 px-3 text-center align-middle text-rose-500 dark:text-rose-400 max-w-[150px] truncate mx-auto" title={log.old_value}>
                           {log.old_value || "N/A"}
                         </td>
-                        <td className="py-3.5 text-right text-emerald-500 max-w-[150px] truncate" title={log.new_value}>
+                        <td className="py-3.5 px-3 text-center align-middle text-emerald-500 dark:text-emerald-400 max-w-[150px] truncate mx-auto" title={log.new_value}>
                           {log.new_value || "N/A"}
                         </td>
                       </tr>

@@ -4554,47 +4554,49 @@ export const AdminControl = () => {
                   <span>Product Audit Trail Logs ({auditLogs.length})</span>
                 </h3>
 
-                <table className="w-full text-left text-xs min-w-[800px]">
+                <table className="w-full text-left text-xs min-w-[800px] border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase font-bold">
-                      <th className="py-2.5">Date & Time (IST)</th>
-                      <th className="py-2.5">Product</th>
-                      <th className="py-2.5">Admin ID</th>
-                      <th className="py-2.5">Action Type</th>
-                      <th className="py-2.5">Field Changed</th>
-                      <th className="py-2.5 text-right">Old Value</th>
-                      <th className="py-2.5 text-right">New Value</th>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase font-bold align-middle">
+                      <th className="py-2.5 px-3 text-left align-middle">Date & Time (IST)</th>
+                      <th className="py-2.5 px-3 text-left align-middle">Product</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Admin ID</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Action Type</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Field Changed</th>
+                      <th className="py-2.5 px-3 text-center align-middle">Old Value</th>
+                      <th className="py-2.5 px-3 text-center align-middle">New Value</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
                     {auditLogs.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20">
-                        <td className="py-3.5 text-slate-500">
+                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 h-12 align-middle">
+                        <td className="py-3.5 px-3 text-left align-middle text-slate-500 dark:text-slate-400 admin-timestamp-text whitespace-nowrap">
                           {log.created_at ? new Date(log.created_at).toLocaleString() : "N/A"}
                         </td>
-                        <td className="py-3.5 font-bold text-slate-800 dark:text-slate-100">
+                        <td className="py-3.5 px-3 text-left align-middle font-bold text-slate-800 dark:text-white">
                           {log.product_name}
                         </td>
-                        <td className="py-3.5 text-slate-500 font-mono">
+                        <td className="py-3.5 px-3 text-center align-middle text-slate-500 dark:text-white font-mono">
                           {log.admin_id || "N/A"}
                         </td>
-                        <td className="py-3.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${log.action_type?.includes("Creation")
-                              ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
-                              : log.action_type?.includes("Delete")
-                                ? 'text-rose-500 bg-rose-500/10 border-rose-500/20'
-                                : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
-                            }`}>
-                            {log.action_type}
-                          </span>
+                        <td className="py-3.5 px-3 text-center align-middle">
+                          <div className="flex items-center justify-center">
+                            <span className={`inline-flex items-center justify-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold border w-auto ${log.action_type?.includes("Creation")
+                                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+                                : log.action_type?.includes("Delete")
+                                  ? 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+                                  : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+                              }`}>
+                              {log.action_type}
+                            </span>
+                          </div>
                         </td>
-                        <td className="py-3.5 text-slate-500">
+                        <td className="py-3.5 px-3 text-center align-middle text-slate-500 dark:text-white">
                           {log.field_name || "N/A"}
                         </td>
-                        <td className="py-3.5 text-right text-rose-500 max-w-[150px] truncate" title={log.old_value}>
+                        <td className="py-3.5 px-3 text-center align-middle text-rose-500 dark:text-rose-400 max-w-[150px] truncate mx-auto" title={log.old_value}>
                           {log.old_value || "N/A"}
                         </td>
-                        <td className="py-3.5 text-right text-emerald-500 max-w-[150px] truncate" title={log.new_value}>
+                        <td className="py-3.5 px-3 text-center align-middle text-emerald-500 dark:text-emerald-400 max-w-[150px] truncate mx-auto" title={log.new_value}>
                           {log.new_value || "N/A"}
                         </td>
                       </tr>
