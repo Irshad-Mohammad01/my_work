@@ -49,10 +49,10 @@ export const CollectionBannerManagement = ({ collections = [] }) => {
     } catch (err) {
       console.error("[CollectionBannerManagement] Error loading collection banners:", err);
       const status = err.response?.status;
-      const errDetail = err.response?.data?.message || err.message;
+      const errDetail = err.response?.data?.message || err.response?.data?.dev_hint || err.message;
 
       if (status === 404) {
-        setFetchError(`Collection Banner API Endpoint Not Found (404). Please ensure backend route is mounted.`);
+        setFetchError(`404 Route Missing: ${errDetail || 'Collection Banner API Endpoint Not Found'}`);
       } else if (status === 500) {
         setFetchError(`Backend Internal Server Error (500): ${errDetail}`);
       } else {
@@ -61,7 +61,6 @@ export const CollectionBannerManagement = ({ collections = [] }) => {
     } finally {
       setLoading(false);
     }
-
   };
 
 
@@ -122,6 +121,12 @@ export const CollectionBannerManagement = ({ collections = [] }) => {
     const trimmed = val.trim();
     if (!trimmed) {
       setUrlValidationError('Image URL is required.');
+      setBannerImage('');
+      return;
+    }
+
+    if (trimmed.startsWith('data:image/')) {
+      setUrlValidationError('Base64 Data URLs (data:image/...) are not supported. Please enter a valid http:// or https:// image URL.');
       setBannerImage('');
       return;
     }

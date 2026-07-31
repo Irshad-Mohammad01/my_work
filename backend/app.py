@@ -241,7 +241,21 @@ def serve_uploads(filename):
 
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({"message": "API endpoint not found!"}), 404
+    from flask import request
+    path = request.path
+    if path.startswith('/api/'):
+        env_mode = os.getenv("CONFIG_ENV", "development").lower()
+        debug_info = {
+            "message": f"404 Route Missing: API endpoint '{path}' not found.",
+            "requested_url": path,
+            "status": 404,
+            "error_type": "Route Missing or Blueprint Not Registered"
+        }
+        if env_mode in ['dev', 'development', 'local']:
+            debug_info["dev_hint"] = "Verify blueprint registration in backend/app.py and route mappings."
+        return jsonify(debug_info), 404
+    return jsonify({"message": "API endpoint not found!", "status": 404}), 404
+
 
 @app.errorhandler(500)
 def server_error(error):

@@ -37,6 +37,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # 1. Public/Admin route: Get all collection banners
 @collection_banners_bp.route('', methods=['GET'])
+@collection_banners_bp.route('/', methods=['GET'])
 def get_all_collection_banners():
     try:
         banners = CollectionBanner.query.order_by(CollectionBanner.display_order.asc(), CollectionBanner.id.desc()).all()
@@ -45,16 +46,31 @@ def get_all_collection_banners():
         return jsonify({"message": f"Error fetching collection banners: {str(e)}"}), 500
 
 
-# 2. Public route: Get dynamic Collection Banner by Collection (ID, Name, or Slug)
-@collection_banners_bp.route('/<path:collection_identifier>', methods=['GET'])
+# 2. Public/Admin route: Get single Collection Banner by primary key ID
+@collection_banners_bp.route('/<int:id>', methods=['GET'])
+def get_collection_banner_by_id(id):
+    try:
+        cb = CollectionBanner.query.get(id)
+        if not cb:
+            return jsonify({"message": f"Collection banner with ID {id} not found."}), 404
+        return jsonify(cb.to_dict()), 200
+    except Exception as e:
+        return jsonify({"message": f"Error fetching collection banner: {str(e)}"}), 500
+
+
+# 3. Public route: Get dynamic Collection Banner by Collection (ID, Name, or Slug)
 @collection_banners_bp.route('/by-collection/<path:collection_identifier>', methods=['GET'])
+@collection_banners_bp.route('/collection/<path:collection_identifier>', methods=['GET'])
+@collection_banners_bp.route('/<path:collection_identifier>', methods=['GET'])
 def get_banner_by_collection(collection_identifier):
     try:
         collection_identifier = collection_identifier.strip()
 
-        # Strip 'by-collection/' prefix if matched by path route
+        # Strip 'by-collection/' or 'collection/' prefix if present
         if collection_identifier.lower().startswith('by-collection/'):
             collection_identifier = collection_identifier[14:].strip()
+        elif collection_identifier.lower().startswith('collection/'):
+            collection_identifier = collection_identifier[11:].strip()
 
         collection = None
 
@@ -104,6 +120,7 @@ def get_banner_by_collection(collection_identifier):
 
     except Exception as e:
         return jsonify({"message": f"Error fetching collection banner: {str(e)}"}), 500
+
 
 
 # 3. Admin route: Upload Collection Banner image
