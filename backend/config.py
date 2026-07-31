@@ -32,6 +32,36 @@ IS_PRODUCTION = IS_PROD  # Backward compatibility alias
 # Centralized Frontend URL
 FRONTEND_URL = (os.environ.get("FRONTEND_URL") or ("http://localhost:5173" if not IS_PROD else "")).rstrip('/')
 
+def get_allowed_origins():
+    """
+    Returns list of exact allowed origins for CORS credentials matching across environments.
+    """
+    origins = []
+    frontend_env = os.environ.get("FRONTEND_URL", "")
+    allowed_env = os.environ.get("ALLOWED_ORIGINS", "")
+    
+    for url_str in [frontend_env, allowed_env]:
+        if url_str:
+            for part in url_str.split(','):
+                part = part.strip().rstrip('/')
+                if part and part not in origins:
+                    origins.append(part)
+                    
+    dev_defaults = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:5005",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5005"
+    ]
+    for d in dev_defaults:
+        if d not in origins:
+            origins.append(d)
+            
+    return origins
+
+
 def resolve_neon_uri(uri):
     if not uri:
         return uri
@@ -116,6 +146,19 @@ class Config:
     # Secrets
     JWT_SECRET = os.environ.get("JWT_SECRET") or os.environ.get("SECRET_KEY") or "supersecret_SSJewellery_key_123"
     SECRET_KEY = os.environ.get("SECRET_KEY") or JWT_SECRET
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or JWT_SECRET
+
+    # Cookie & Session Security Settings (Environment Aware)
+    SESSION_COOKIE_SECURE = not IS_DEV
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "None" if not IS_DEV else "Lax"
+    REMEMBER_COOKIE_SECURE = not IS_DEV
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "None" if not IS_DEV else "Lax"
+
+    JWT_COOKIE_SECURE = not IS_DEV
+    JWT_COOKIE_SAMESITE = "None" if not IS_DEV else "Lax"
+    JWT_COOKIE_CSRF_PROTECT = False
 
     @classmethod
     def get_jwt_secret(cls):
@@ -125,9 +168,11 @@ class Config:
         return (
             os.environ.get("JWT_SECRET")
             or os.environ.get("SECRET_KEY")
+            or os.environ.get("JWT_SECRET_KEY")
             or cls.JWT_SECRET
             or "supersecret_SSJewellery_key_123"
         )
+
     
     # Database
     SQLALCHEMY_DATABASE_URI = resolve_neon_uri(raw_uri) if raw_uri else None

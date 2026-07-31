@@ -32,7 +32,7 @@ builtins.print = safe_print
 
 import logging
 from backend.extensions import db, migrate, mail
-from backend.config import Config, validate_environment, FRONTEND_URL
+from backend.config import Config, validate_environment, FRONTEND_URL, get_allowed_origins
 from backend.models import TransactionModel
 from backend.routes.auth import auth_bp
 from backend.routes.products import products_bp
@@ -64,8 +64,9 @@ log_level = getattr(logging, str(Config.LOGGING_LEVEL).upper(), logging.INFO)
 logging.basicConfig(level=log_level, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 app.logger.setLevel(log_level)
 
-# Enable CORS for frontend requests
-CORS(app, supports_credentials=True)
+# Enable CORS for frontend requests with exact environment-aware origins
+allowed_origins_list = get_allowed_origins()
+CORS(app, origins=allowed_origins_list, supports_credentials=True)
 
 import gzip
 import io
@@ -75,11 +76,12 @@ def handle_options_preflight():
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
         origin = request.headers.get('Origin')
+        allowed = get_allowed_origins()
         if origin:
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Vary'] = 'Origin'
-        else:
-            response.headers['Access-Control-Allow-Origin'] = '*'
+        elif allowed:
+            response.headers['Access-Control-Allow-Origin'] = allowed[0]
         response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, X-Access-Token, X-Auth-Token, X-Admin-Token'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -88,11 +90,12 @@ def handle_options_preflight():
 @app.after_request
 def add_cors_and_compress(response):
     origin = request.headers.get('Origin')
+    allowed = get_allowed_origins()
     if origin:
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Vary'] = 'Origin'
-    else:
-        response.headers['Access-Control-Allow-Origin'] = '*'
+    elif allowed:
+        response.headers['Access-Control-Allow-Origin'] = allowed[0]
 
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, X-Access-Token, X-Auth-Token, X-Admin-Token'

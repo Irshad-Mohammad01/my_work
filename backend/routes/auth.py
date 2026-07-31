@@ -66,7 +66,7 @@ def login():
                 "username": admin_record.username,
                 "email": admin_email_str,
                 "is_admin": True,
-                "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+                "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
             }
             token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
             return jsonify({
@@ -125,7 +125,7 @@ def login():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
@@ -458,7 +458,7 @@ def user_login_route():
                 "username": admin_record.username,
                 "email": admin_email_str,
                 "is_admin": True,
-                "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+                "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
             }
             token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
             return jsonify({
@@ -511,7 +511,7 @@ def user_login_route():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
@@ -850,7 +850,7 @@ def checkout_login_route():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
@@ -1481,7 +1481,7 @@ def google_callback():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
@@ -1675,7 +1675,7 @@ def microsoft_callback():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
@@ -1782,7 +1782,7 @@ def microsoft_login():
     payload = {
         "user_id": user["_id"],
         "is_admin": user.get("is_admin", False),
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     
     token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")

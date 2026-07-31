@@ -92,7 +92,7 @@ def admin_login():
         "email": admin_email_str,
         "is_admin": True,
         "role": "admin",
-        "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     jwt_secret = Config.get_jwt_secret()
     token = jwt.encode(payload, jwt_secret, algorithm="HS256")

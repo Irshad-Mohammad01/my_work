@@ -84,9 +84,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // Globally intercept 401 Unauthorized errors to clean up stale sessions
+  // Globally intercept request to guarantee Authorization header and withCredentials
   useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
+    const requestInterceptor = axios.interceptors.request.use(
+      (config) => {
+        config.withCredentials = true;
+        const currentToken = localStorage.getItem('bb_token') || localStorage.getItem('token');
+        if (currentToken && currentToken !== 'null' && currentToken !== 'undefined') {
+          const cleanToken = currentToken.toString().replace(/^Bearer\s+/i, '').trim();
+          if (cleanToken && cleanToken.length > 10) {
+            config.headers = config.headers || {};
+            if (!config.headers['Authorization']) {
+              config.headers['Authorization'] = `Bearer ${cleanToken}`;
+            }
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    const responseInterceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
@@ -98,8 +116,10 @@ export const AuthProvider = ({ children }) => {
         return Promise.reject(error);
       }
     );
+
     return () => {
-      axios.interceptors.response.eject(interceptor);
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
     };
   }, []);
 
