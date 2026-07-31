@@ -963,7 +963,7 @@ const matchesCollection = (product, collectionName) => {
 };
 
 export const Home = () => {
-  const { language, isAdmin } = useContext(AuthContext);
+  const { language, isAdmin, token } = useContext(AuthContext);
 
   // Parallax scroll effects for Hero Banner
   const { scrollY } = useScroll();
@@ -1090,16 +1090,16 @@ export const Home = () => {
 
   const fetchGeneralAuditLogs = async () => {
     try {
-      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const activeToken = token || localStorage.getItem('bb_token') || localStorage.getItem('token');
+      if (activeToken && activeToken !== 'null' && activeToken !== 'undefined' && activeToken.length > 10) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${activeToken}`;
+      }
       const params = {};
       if (auditSearch.trim()) params.search = auditSearch;
       if (auditActionType) params.action_type = auditActionType;
       if (auditStatus) params.status = auditStatus;
 
-      const res = await axios.get(`${API_BASE_URL}/admin/general-audit-logs`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        params: params
-      });
+      const res = await axios.get(`${API_BASE_URL}/admin/general-audit-logs`, { params });
       setGeneralAuditLogs(res.data);
     } catch (err) {
       console.error("Failed to fetch general audit logs:", err);
@@ -1122,15 +1122,32 @@ export const Home = () => {
         setUsersLoading(true);
         setUsersError(null);
         try {
-          const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+          const rawToken = token || localStorage.getItem('bb_token') || localStorage.getItem('token');
+          const cleanToken = rawToken ? rawToken.toString().replace(/^Bearer\s+/i, '').trim() : null;
+          
+          if (!cleanToken || cleanToken === 'null' || cleanToken === 'undefined' || cleanToken.length < 10) {
+            setUsersError("Authorization token missing or invalid. Please log in again as admin.");
+            setUsersLoading(false);
+            return;
+          }
+
+          const authHeader = `Bearer ${cleanToken}`;
+          axios.defaults.headers.common['Authorization'] = authHeader;
+
           const response = await axios.get(`${API_BASE_URL}/admin/users-complete`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': authHeader }
           });
           setUsersComplete(response.data.users || []);
           setUsersAnalytics(response.data.analytics || null);
         } catch (err) {
           console.error("Error fetching complete users list:", err);
-          setUsersError("Failed to fetch customer data. Make sure you are authorized as admin.");
+          const errMsg = err.response?.data?.message || err.message || "Failed to fetch customer data.";
+          if (err.response?.status === 401 || err.response?.status === 403 || errMsg.includes("Invalid authentication token")) {
+            localStorage.removeItem('bb_token');
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
+          }
+          setUsersError(errMsg);
         } finally {
           setUsersLoading(false);
         }
@@ -1665,7 +1682,7 @@ export const Home = () => {
   return (
     <div ref={heroBannerRef} className="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen pb-16">
 
-      {!activeSearch && activeCategory === 'All' ? (
+      {!activeSearch && activeCategory === 'All' && activeCollection === 'All' ? (
         <BannerSlider
           slides={slides}
           activeSlide={activeSlide}
@@ -1678,11 +1695,11 @@ export const Home = () => {
           bannersLoading={bannersLoading}
           onCategoryClick={handleCategoryClick}
         />
-      ) : (
+      ) : activeSearch ? (
         <SearchSpotlight products={products} language={language} />
-      )}
+      ) : null}
 
-      {!activeSearch && activeCategory === 'All' && (
+      {!activeSearch && activeCategory === 'All' && activeCollection === 'All' && (
         <CategoryGrid
           activeCategory={activeCategory}
           loading={loading}
@@ -1919,15 +1936,20 @@ export const Home = () => {
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-xl mx-auto my-12">
               <h3 className="text-red-600 dark:text-red-400 font-bold text-lg">Error Loading Users</h3>
               <p className="text-slate-550 dark:text-slate-400 text-sm mt-2">{usersError}</p>
-              <button
-                onClick={() => {
-                  setActiveTab('products');
-                  setTimeout(() => setActiveTab('users'), 50);
-                }}
-                className="mt-4 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
-              >
-                Try Again
-              </button>
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  onClick={() => setUsersRefreshTrigger(prev => prev + 1)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+                >
+                  Try Again
+                </button>
+                <Link
+                  to="/admin-control"
+                  className="px-4 py-2 bg-[#D4A75F] hover:bg-[#BF934B] text-slate-950 rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+                >
+                  Re-Authenticate Admin
+                </Link>
+              </div>
             </div>
           ) : (
             renderUsersData()
@@ -1945,6 +1967,20 @@ export const Home = () => {
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-xl mx-auto my-12">
               <h3 className="text-red-600 dark:text-red-400 font-bold text-lg">Error Loading Analytics</h3>
               <p className="text-slate-550 dark:text-slate-400 text-sm mt-2">{usersError}</p>
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  onClick={() => setUsersRefreshTrigger(prev => prev + 1)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+                >
+                  Try Again
+                </button>
+                <Link
+                  to="/admin-control"
+                  className="px-4 py-2 bg-[#D4A75F] hover:bg-[#BF934B] text-slate-950 rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+                >
+                  Re-Authenticate Admin
+                </Link>
+              </div>
             </div>
           ) : (
             renderAdminAnalytics()

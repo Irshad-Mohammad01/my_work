@@ -50,6 +50,18 @@ export const AuthProvider = ({ children }) => {
     axios.defaults.headers.common['Accept-Language'] = language;
   }, [language]);
 
+  const setAxiosAuthToken = (rawToken) => {
+    if (rawToken && rawToken !== 'null' && rawToken !== 'undefined') {
+      const cleanToken = rawToken.toString().replace(/^Bearer\s+/i, '').trim();
+      if (cleanToken && cleanToken.length > 10) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
+        return cleanToken;
+      }
+    }
+    delete axios.defaults.headers.common['Authorization'];
+    return null;
+  };
+
   // Sync with localStorage on load
   useEffect(() => {
     const savedToken = localStorage.getItem('bb_token') || localStorage.getItem('token');
@@ -65,9 +77,7 @@ export const AuthProvider = ({ children }) => {
         console.error("Failed to parse saved user in AuthContext:", err);
       }
       setLoginType(savedLoginType);
-      
-      // Configure default axios Authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+      setAxiosAuthToken(savedToken);
     } else {
       delete axios.defaults.headers.common['Authorization'];
     }
@@ -118,7 +128,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('bb_user', JSON.stringify(userData));
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('bb_login_type', determinedLoginType);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+      setAxiosAuthToken(userToken);
       return true;
     } catch (err) {
       console.error("User login failed:", err.message);
@@ -141,7 +151,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('bb_user', JSON.stringify(userData));
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('bb_login_type', determinedLoginType);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+      setAxiosAuthToken(userToken);
       return true;
     } catch (err) {
       console.error("Microsoft login failed:", err.message);
@@ -160,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('bb_user', JSON.stringify(userData));
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('bb_login_type', determinedLoginType);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+    setAxiosAuthToken(userToken);
   };
 
   const adminLogin = async (adminId, password) => {
@@ -176,7 +186,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('bb_user', JSON.stringify(userData));
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('bb_login_type', 'admin');
-      axios.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+      setAxiosAuthToken(userToken);
       return true;
     } catch (err) {
       console.error("Admin login failed:", err.message);
