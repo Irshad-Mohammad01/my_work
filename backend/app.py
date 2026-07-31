@@ -154,6 +154,20 @@ app.register_blueprint(gold_rate_bp, url_prefix='/api/gold-rate')
 app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
 app.register_blueprint(high_demand_bp, url_prefix='/api/high-demand')
 
+def print_registered_routes(app_instance):
+    """Prints all registered routes at app startup for production route visibility."""
+    with app_instance.app_context():
+        routes_log = ["=== REGISTERED FLASK ROUTES AT STARTUP ==="]
+        for rule in app_instance.url_map.iter_rules():
+            methods = ','.join(sorted(rule.methods - {'HEAD', 'OPTIONS'}))
+            routes_log.append(f"  {methods:10s} {rule.rule:45s} -> {rule.endpoint}")
+        routes_log.append("============================================")
+        full_log = "\n".join(routes_log)
+        app_instance.logger.info(full_log)
+        print(full_log)
+
+print_registered_routes(app)
+
 
 
 

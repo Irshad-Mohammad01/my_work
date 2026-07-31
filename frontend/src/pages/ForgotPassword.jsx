@@ -62,8 +62,16 @@ export const ForgotPassword = () => {
         setOtpMode(response.data.otp_mode);
       }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Account not found. Please register first.");
+      console.error("[FORGOT PASSWORD FRONTEND ERROR]", err);
+      if (!err.response) {
+        setError("Unable to contact server. Please check your network connection.");
+      } else if (err.response.status === 404) {
+        setError(err.response.data?.message || "Account not found. Please register first.");
+      } else if (err.response.status === 500) {
+        setError(err.response.data?.message || "Server error occurred. Please try again later.");
+      } else {
+        setError(err.response.data?.message || "An error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
