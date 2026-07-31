@@ -4,7 +4,9 @@ import os
 import uuid
 import random
 import json
-from flask import Blueprint, request, jsonify, redirect
+from flask import Blueprint, request, jsonify, redirect, current_app
+import traceback
+from urllib.parse import urlparse, urlunparse
 import jwt
 import bcrypt
 from sqlalchemy import func
@@ -19,6 +21,42 @@ from backend.utils.security import mask_email, mask_name
 from backend.config import Config, FRONTEND_URL
 
 auth_bp = Blueprint('auth', __name__)
+
+class ValidationException(Exception):
+    def __init__(self, message="Please provide your registered email or mobile number.", status_code=400):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+class DatabaseException(Exception):
+    def __init__(self, message="Database error.", status_code=500):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+class SMTPException(Exception):
+    def __init__(self, message="Unable to send OTP email.", status_code=500):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+class UnexpectedException(Exception):
+    def __init__(self, message="An unexpected error occurred.", status_code=500):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+def get_safe_db_uri(uri):
+    if not uri:
+        return "None"
+    try:
+        parsed = urlparse(str(uri))
+        if parsed.password:
+            netloc = parsed.netloc.replace(f":{parsed.password}@", ":*****@")
+            return urlunparse(parsed._replace(netloc=netloc))
+        return str(uri)
+    except Exception:
+        return "Unparseable URI"
 
 def get_jwt_secret():
     return Config.get_jwt_secret()
@@ -536,77 +574,177 @@ def user_login_route():
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    data = request.get_json() or {}
-    raw_input = data.get("email") or data.get("email_or_mobile")
-    print(f"[FORGOT PASSWORD] Step 1: Request received for input: '{raw_input}'")
-    
-    if not raw_input:
-        print("[FORGOT PASSWORD ERROR] Missing email or mobile parameter.")
-        return jsonify({"message": "Please provide your registered email or mobile number."}), 400
+    try:
+        data = request.get_json() or {}
+        raw_input = data.get("email") or data.get("email_or_mobile") or data.get("mobile")
+        
+        # Step 1: Logging Incoming Request
+        current_app.logger.info(f"[FORGOT PASSWORD LOG] Incoming request for email/mobile: '{raw_input}'")
+        print(f"[FORGOT PASSWORD LOG] Step 1: Incoming request for email/mobile: '{raw_input}'")
+        
+        # Step 1: Logging DB Connection Status & Database URI (password masked)
+        safe_uri = get_safe_db_uri(Config.SQLALCHEMY_DATABASE_URI)
+        try:
+            db.session.execute(db.text("SELECT 1"))
+            db_conn_status = "Connected (OK)"
+        except Exception as conn_err:
+            db_conn_status = f"Disconnected/Error: {conn_err}"
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] DB Connection Check Failed: {conn_err}\n{traceback.format_exc()}")
+            raise DatabaseException("Database error.", status_code=500)
+            
+        current_app.logger.info(f"[FORGOT PASSWORD LOG] DB URI: {safe_uri} | DB Status: {db_conn_status}")
+        print(f"[FORGOT PASSWORD LOG] DB URI: {safe_uri} | DB Status: {db_conn_status}")
 
-    email_or_mobile = normalize_email(raw_input) if is_valid_email(raw_input) else str(raw_input).strip()
-        
-    if is_valid_email(email_or_mobile) and not is_allowed_email_domain(email_or_mobile):
-        print(f"[FORGOT PASSWORD ERROR] Unsupported email domain: '{email_or_mobile}'")
-        return jsonify({"message": "Only Gmail (@gmail.com) and Outlook (@outlook.com) email addresses are supported."}), 400
-        
-    user_obj = UserModel.query.filter(
-        (UserModel.email == email_or_mobile) | (UserModel.phone == email_or_mobile)
-    ).first()
-    
-    if not user_obj:
-        print(f"[FORGOT PASSWORD ERROR] Account not found for email/mobile: '{email_or_mobile}'")
-        return jsonify({"message": "Account not found. Please register first."}), 404
-        
-    print(f"[FORGOT PASSWORD] Step 2: Registered user found: '{user_obj.name}' ({user_obj.email})")
+        if not raw_input or not str(raw_input).strip():
+            current_app.logger.warning("[FORGOT PASSWORD LOG] Empty input provided.")
+            raise ValidationException("Please provide your registered email or mobile number.", status_code=400)
 
-    current_time = get_ist_time()
-    
-    # Invalidate expired records automatically
-    OTPVerification.query.filter(OTPVerification.expires_at < current_time).delete()
-    
-    # Cleanup old verification sessions for this email
-    OTPVerification.query.filter_by(email=user_obj.email).delete()
-    db.session.commit()
-    
-    # Generate 6-digit OTP
-    otp_code = str(random.randint(100000, 999999))
-    expires_at = current_time + datetime.timedelta(minutes=5)
-    
-    otp_record = OTPVerification(
-        email=user_obj.email,
-        otp_code=otp_code,
-        expires_at=expires_at,
-        is_verified=False,
-        attempts=0,
-        resend_attempts=0,
-        user_id=user_obj.id
-    )
-    db.session.add(otp_record)
-    db.session.commit()
-    print(f"[FORGOT PASSWORD] Step 3: OTP '{otp_code}' generated and stored securely for user_id={user_obj.id} (expires at {expires_at})")
-    
-    # Send email via SMTP
-    print(f"[FORGOT PASSWORD] Step 4: Initiating SMTP email dispatch to {user_obj.email}...")
-    email_result = send_forgot_password_otp(user_obj.email, otp_code, name=user_obj.name)
-    
-    if not email_result:
-        err_detail = email_result.get('error', 'SMTP connection failed') if isinstance(email_result, dict) else 'SMTP transmission failed'
-        print(f"[FORGOT PASSWORD ERROR] Step 5: SMTP failure for {user_obj.email}: {err_detail}")
-        db.session.delete(otp_record)
-        db.session.commit()
-        return jsonify({
-            "message": f"SMTP transmission failed: {err_detail}",
-            "success": False,
-            "error": err_detail
-        }), 500
+        clean_input = str(raw_input).strip()
+        clean_lower = clean_input.lower()
+            
+        if is_valid_email(clean_input) and not is_allowed_email_domain(clean_input):
+            current_app.logger.warning(f"[FORGOT PASSWORD LOG] Unsupported email domain: '{clean_input}'")
+            raise ValidationException("Only Gmail (@gmail.com) and Outlook (@outlook.com) email addresses are supported.", status_code=400)
+
+        # Step 2 & 3: Fix User Lookup (email == input OR mobile == input, case-insensitive, trimmed)
+        user_obj = None
+        try:
+            # Direct SQLAlchemy Query Filter
+            user_obj = UserModel.query.filter(
+                (UserModel.email == clean_lower) | 
+                (UserModel.email == clean_input) | 
+                (UserModel.phone == clean_lower) | 
+                (UserModel.phone == clean_input)
+            ).first()
+
+            # Robust fallback Python-side check across user records if direct query produces no match
+            if not user_obj:
+                all_users = UserModel.query.all()
+                for u in all_users:
+                    u_email = (u.email or "").strip().lower()
+                    u_phone = str(u.phone or "").strip()
+                    u_mobile = str(u.mobile or "").strip()
+                    if u_email == clean_lower or u_phone == clean_input or u_mobile == clean_input:
+                        user_obj = u
+                        break
+        except Exception as lookup_err:
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] Exception during user lookup DB query: {lookup_err}\n{traceback.format_exc()}")
+            raise DatabaseException("Database error.", status_code=500)
         
-    print(f"[FORGOT PASSWORD SUCCESS] Step 5: Password reset OTP email successfully sent to {user_obj.email} via SMTP")
-    return jsonify({
-        "message": "Verification OTP sent successfully! Please check your email.",
-        "success": True,
-        "email": user_obj.email
-    }), 200
+        if not user_obj:
+            current_app.logger.info(f"[FORGOT PASSWORD LOG] Matched User: None (Account not found for '{clean_input}')")
+            print(f"[FORGOT PASSWORD LOG] Matched User: None (Account not found for '{clean_input}')")
+            return jsonify({"success": False, "message": "Account not found."}), 404
+            
+        current_app.logger.info(f"[FORGOT PASSWORD LOG] Matched User ID: {user_obj.id} | Matched Email: '{user_obj.email}' | Name: '{user_obj.name}'")
+        print(f"[FORGOT PASSWORD LOG] Matched User ID: {user_obj.id} | Matched Email: '{user_obj.email}' | Name: '{user_obj.name}'")
+
+        # Step 5: OTP Generation & Storage
+        try:
+            current_time = get_ist_time()
+            
+            # Invalidate expired records automatically
+            OTPVerification.query.filter(OTPVerification.expires_at < current_time).delete()
+            
+            # Cleanup old verification sessions for this email
+            OTPVerification.query.filter_by(email=user_obj.email).delete()
+            db.session.commit()
+            
+            # Generate 6-digit OTP
+            otp_code = str(random.randint(100000, 999999))
+            expires_at = current_time + datetime.timedelta(minutes=5)
+            
+            otp_record = OTPVerification(
+                email=user_obj.email,
+                otp_code=otp_code,
+                expires_at=expires_at,
+                is_verified=False,
+                attempts=0,
+                resend_attempts=0,
+                user_id=user_obj.id
+            )
+            db.session.add(otp_record)
+            db.session.commit()
+            current_app.logger.info(f"[FORGOT PASSWORD LOG] OTP generation: '{otp_code}' | OTP save: Success (expires at {expires_at})")
+            print(f"[FORGOT PASSWORD LOG] OTP generation: '{otp_code}' | OTP save: Success (expires at {expires_at})")
+        except Exception as otp_save_err:
+            db.session.rollback()
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] Database failed during OTP save: {otp_save_err}\n{traceback.format_exc()}")
+            raise DatabaseException("Database error.", status_code=500)
+        
+        # Step 4: SMTP Initialization & Transmission
+        if not user_obj.email or "@" not in str(user_obj.email):
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] User ID {user_obj.id} has invalid or missing email: '{user_obj.email}'")
+            try:
+                db.session.delete(otp_record)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            raise SMTPException("Unable to send OTP email.", status_code=500)
+
+        current_app.logger.info(f"[FORGOT PASSWORD LOG] SMTP Initialization: Preparing email to '{user_obj.email}' via {Config.SMTP_HOST}:{Config.SMTP_PORT}...")
+        print(f"[FORGOT PASSWORD LOG] SMTP Initialization: Preparing email to '{user_obj.email}' via {Config.SMTP_HOST}:{Config.SMTP_PORT}...")
+        
+        try:
+            email_result = send_forgot_password_otp(user_obj.email, otp_code, name=user_obj.name)
+            current_app.logger.info(f"[FORGOT PASSWORD LOG] SMTP Send Result: {email_result}")
+            print(f"[FORGOT PASSWORD LOG] SMTP Send Result: {email_result}")
+        except Exception as smtp_err:
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] SMTP Send Exception: {smtp_err}\n{traceback.format_exc()}")
+            try:
+                db.session.delete(otp_record)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            raise SMTPException("Unable to send OTP email.", status_code=500)
+        
+        if not email_result:
+            err_detail = email_result.get('error', 'SMTP transmission failed') if isinstance(email_result, dict) else 'SMTP transmission failed'
+            current_app.logger.error(f"[FORGOT PASSWORD ERROR] SMTP transmission returned failure: {err_detail}")
+            print(f"[FORGOT PASSWORD ERROR] SMTP transmission returned failure: {err_detail}")
+            try:
+                db.session.delete(otp_record)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            raise SMTPException("Unable to send OTP email.", status_code=500)
+            
+        current_app.logger.info(f"[FORGOT PASSWORD SUCCESS] OTP email successfully dispatched to {user_obj.email}")
+        
+        # Step 8: Return 200 OK Response
+        response_payload = {
+            "success": True,
+            "message": "OTP sent successfully.",
+            "email": user_obj.email
+        }
+        otp_mode = os.getenv("OTP_MODE", "development").lower()
+        if otp_mode == "development":
+            response_payload["otp"] = otp_code
+            response_payload["otp_mode"] = "development"
+
+        return jsonify(response_payload), 200
+
+    except ValidationException as val_ex:
+        current_app.logger.warning(f"[FORGOT PASSWORD VALIDATION EXCEPTION] {val_ex.message}")
+        return jsonify({"success": False, "message": val_ex.message}), val_ex.status_code
+    except DatabaseException as db_ex:
+        current_app.logger.error(f"[FORGOT PASSWORD DATABASE EXCEPTION] {db_ex.message}")
+        return jsonify({"success": False, "message": db_ex.message}), db_ex.status_code
+    except SMTPException as smtp_ex:
+        current_app.logger.error(f"[FORGOT PASSWORD SMTP EXCEPTION] {smtp_ex.message}")
+        return jsonify({"success": False, "message": smtp_ex.message}), smtp_ex.status_code
+    except UnexpectedException as unexp_ex:
+        current_app.logger.error(f"[FORGOT PASSWORD UNEXPECTED EXCEPTION] {unexp_ex.message}")
+        return jsonify({"success": False, "message": unexp_ex.message}), unexp_ex.status_code
+    except Exception as ex:
+        err_msg = str(ex).lower()
+        current_app.logger.error(f"[FORGOT PASSWORD UNHANDLED EXCEPTION] {ex}\n{traceback.format_exc()}")
+        if "database" in err_msg or "sqlalchemy" in err_msg or "psycopg" in err_msg or "sqlite" in err_msg:
+            return jsonify({"success": False, "message": "Database error."}), 500
+        elif "smtp" in err_msg or "mail" in err_msg:
+            return jsonify({"success": False, "message": "Unable to send OTP email."}), 500
+        else:
+            return jsonify({"success": False, "message": "An unexpected error occurred."}), 500
 
 @auth_bp.route('/verify-reset-otp', methods=['POST'])
 def verify_reset_otp():
