@@ -1124,7 +1124,7 @@ export const Home = () => {
         try {
           const rawToken = token || localStorage.getItem('bb_token') || localStorage.getItem('token');
           const cleanToken = rawToken ? rawToken.toString().replace(/^Bearer\s+/i, '').trim() : null;
-          
+
           if (!cleanToken || cleanToken === 'null' || cleanToken === 'undefined' || cleanToken.length < 10) {
             setUsersError("Authorization token missing or invalid. Please log in again as admin.");
             setUsersLoading(false);
@@ -1854,7 +1854,7 @@ export const Home = () => {
               <ShoppingBag className="h-8 w-8" />
             </div>
             <h3 className="text-lg font-bold mt-4 text-slate-800 dark:text-slate-100">
-              {activeCollection !== 'All' 
+              {activeCollection !== 'All'
                 ? (language === 'hi' ? 'इस संग्रह में कोई उत्पाद नहीं है' : 'No products have been added to this collection yet.')
                 : 'No Products Found'}
             </h3>
@@ -1943,12 +1943,6 @@ export const Home = () => {
                 >
                   Try Again
                 </button>
-                <Link
-                  to="/admin-control"
-                  className="px-4 py-2 bg-[#D4A75F] hover:bg-[#BF934B] text-slate-950 rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
-                >
-                  Re-Authenticate Admin
-                </Link>
               </div>
             </div>
           ) : (
@@ -1974,12 +1968,6 @@ export const Home = () => {
                 >
                   Try Again
                 </button>
-                <Link
-                  to="/admin-control"
-                  className="px-4 py-2 bg-[#D4A75F] hover:bg-[#BF934B] text-slate-950 rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
-                >
-                  Re-Authenticate Admin
-                </Link>
               </div>
             </div>
           ) : (

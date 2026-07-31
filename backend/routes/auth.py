@@ -19,7 +19,9 @@ from backend.utils.security import mask_email, mask_name
 from backend.config import Config, FRONTEND_URL
 
 auth_bp = Blueprint('auth', __name__)
-JWT_SECRET = Config.JWT_SECRET
+
+def get_jwt_secret():
+    return Config.get_jwt_secret()
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -66,7 +68,7 @@ def login():
                 "is_admin": True,
                 "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
             }
-            token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+            token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
             return jsonify({
                 "message": "Admin login successful!",
                 "token": token,
@@ -126,7 +128,7 @@ def login():
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
     
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     return jsonify({
         "message": "Login successful!",
@@ -458,7 +460,7 @@ def user_login_route():
                 "is_admin": True,
                 "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
             }
-            token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+            token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
             return jsonify({
                 "message": "Admin login successful!",
                 "token": token,
@@ -511,7 +513,7 @@ def user_login_route():
         "is_admin": user.get("is_admin", False),
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     return jsonify({
         "message": "Login successful!",
@@ -850,7 +852,7 @@ def checkout_login_route():
         "is_admin": user.get("is_admin", False),
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     return jsonify({
         "message": "Checkout login successful!",
@@ -1481,7 +1483,7 @@ def google_callback():
         "is_admin": user.get("is_admin", False),
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     # Redirect back to frontend
     user_json = json.dumps(user)
@@ -1675,7 +1677,7 @@ def microsoft_callback():
         "is_admin": user.get("is_admin", False),
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     # Redirect back to frontend
     user_json = json.dumps(user)
@@ -1783,7 +1785,7 @@ def microsoft_login():
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
     
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
     
     return jsonify({
         "message": "Login successful via Microsoft!",

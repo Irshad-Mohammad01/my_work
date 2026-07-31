@@ -91,9 +91,11 @@ def admin_login():
         "username": admin_name_str,
         "email": admin_email_str,
         "is_admin": True,
+        "role": "admin",
         "exp": datetime.datetime.now(pytz.utc) + datetime.timedelta(hours=24)
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    jwt_secret = Config.get_jwt_secret()
+    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
     
     from backend.utils.audit import log_admin_action
     log_admin_action("Admin Login", "Admin Authentication", f"Admin '{admin_name_str}' logged in successfully")
@@ -472,7 +474,7 @@ def update_user_status(id):
             token = auth_header.split(" ")[1]
     if token:
         try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            payload = jwt.decode(token, Config.get_jwt_secret(), algorithms=["HS256"])
             admin_id = payload.get("user_id") or "admin"
         except Exception:
             pass

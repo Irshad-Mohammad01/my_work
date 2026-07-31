@@ -114,8 +114,20 @@ class Config:
     FRONTEND_URL = FRONTEND_URL
     
     # Secrets
-    JWT_SECRET = os.environ.get("JWT_SECRET", "supersecret_SSJewellery_key_123")
-    SECRET_KEY = os.environ.get("SECRET_KEY", JWT_SECRET)
+    JWT_SECRET = os.environ.get("JWT_SECRET") or os.environ.get("SECRET_KEY") or "supersecret_SSJewellery_key_123"
+    SECRET_KEY = os.environ.get("SECRET_KEY") or JWT_SECRET
+
+    @classmethod
+    def get_jwt_secret(cls):
+        """
+        Dynamically retrieve the active JWT secret at runtime across environments.
+        """
+        return (
+            os.environ.get("JWT_SECRET")
+            or os.environ.get("SECRET_KEY")
+            or cls.JWT_SECRET
+            or "supersecret_SSJewellery_key_123"
+        )
     
     # Database
     SQLALCHEMY_DATABASE_URI = resolve_neon_uri(raw_uri) if raw_uri else None

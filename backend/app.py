@@ -55,22 +55,47 @@ app = Flask(__name__)
 # Load configuration
 app.config.from_object(Config)
 
+# Enable ProxyFix for reliable environment proxy header processing (Render, Oracle Cloud, Nginx)
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
 # Configure Python logging based on active environment LOGGING_LEVEL
 log_level = getattr(logging, str(Config.LOGGING_LEVEL).upper(), logging.INFO)
 logging.basicConfig(level=log_level, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 app.logger.setLevel(log_level)
 
-
 # Enable CORS for frontend requests
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, supports_credentials=True)
 
 import gzip
 import io
 
+@app.before_request
+def handle_options_preflight():
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Vary'] = 'Origin'
+        else:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, X-Access-Token, X-Auth-Token, X-Admin-Token'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        return response
+
 @app.after_request
 def add_cors_and_compress(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Vary'] = 'Origin'
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With, X-Access-Token, X-Auth-Token, X-Admin-Token'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
 
     # Gzip response payload compression for text/JSON responses
