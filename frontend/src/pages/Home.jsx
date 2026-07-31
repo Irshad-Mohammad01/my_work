@@ -1142,11 +1142,6 @@ export const Home = () => {
         } catch (err) {
           console.error("Error fetching complete users list:", err);
           const errMsg = err.response?.data?.message || err.message || "Failed to fetch customer data.";
-          if (err.response?.status === 401 || err.response?.status === 403 || errMsg.includes("Invalid authentication token")) {
-            localStorage.removeItem('bb_token');
-            localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
-          }
           setUsersError(errMsg);
         } finally {
           setUsersLoading(false);
