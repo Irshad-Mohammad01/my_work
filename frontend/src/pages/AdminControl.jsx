@@ -13,6 +13,9 @@ import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
 import { TrackingInfoModal } from '../components/admin/TrackingInfoModal';
+import { CategoryBannerManagement } from '../components/admin/CategoryBannerManagement';
+import { CollectionBannerManagement } from '../components/admin/CollectionBannerManagement';
+
 
 const AdminPaymentManagement = React.lazy(() => import('../components/AdminPaymentManagement').then(m => ({ default: m.AdminPaymentManagement })));
 
@@ -3184,9 +3187,17 @@ export const AdminControl = () => {
             </button>
           </div>
         </form>
+
+        {/* SECTION 5: CATEGORY BANNER MANAGEMENT */}
+        <CategoryBannerManagement categories={safeCategories} />
+
+        {/* SECTION 6: COLLECTION BANNER MANAGEMENT */}
+        <CollectionBannerManagement collections={safeCollections} />
       </div>
     );
   };
+
+
 
   if (!user || !isAdmin) {
     return (

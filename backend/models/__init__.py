@@ -13,4 +13,7 @@ from backend.models.settings import SiteSettingModel
 from backend.models.collection import CollectionModel
 from backend.models.transaction import TransactionModel
 from backend.models.email_log import EmailLog
+from backend.models.category_banner import CategoryBanner
+from backend.models.collection_banner import CollectionBanner
+
 

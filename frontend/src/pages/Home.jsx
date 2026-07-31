@@ -17,6 +17,9 @@ import { LuxuryGallery } from '../components/LuxuryGallery';
 import { OccasionGallery } from '../components/OccasionGallery';
 import { OwnerShowcase } from '../components/OwnerShowcase';
 import { VideoShowcase } from '../components/VideoShowcase';
+import { CategoryBanner } from '../components/CategoryBanner';
+import { CollectionBanner } from '../components/CollectionBanner';
+
 
 
 const ACTION_TYPES = [
@@ -1692,7 +1695,13 @@ export const Home = () => {
         />
       ) : activeSearch ? (
         <SearchSpotlight products={products} language={language} />
+      ) : !activeSearch && activeCategory !== 'All' && activeCollection === 'All' ? (
+        <CategoryBanner categoryName={activeCategory} />
+      ) : !activeSearch && activeCollection !== 'All' ? (
+        <CollectionBanner collectionName={activeCollection} />
       ) : null}
+
+
 
       {!activeSearch && activeCategory === 'All' && activeCollection === 'All' && (
         <CategoryGrid

@@ -41,6 +41,8 @@ from backend.routes.admin import admin_bp
 from backend.routes.support import support_bp
 from backend.routes.coupons import coupons_bp
 from backend.routes.banners import banners_bp
+from backend.routes.category_banners import category_banners_bp
+from backend.routes.collection_banners import collection_banners_bp
 from backend.routes.collections import collections_bp
 from backend.routes.gold_rate import gold_rate_bp
 from backend.routes.maintenance import maintenance_bp
@@ -145,10 +147,14 @@ app.register_blueprint(payments_bp, url_prefix='/api/admin/payments')
 app.register_blueprint(support_bp, url_prefix='/api/support')
 app.register_blueprint(coupons_bp, url_prefix='/api/coupons')
 app.register_blueprint(banners_bp, url_prefix='/api/banners')
+app.register_blueprint(category_banners_bp, url_prefix='/api/category-banners')
+app.register_blueprint(collection_banners_bp, url_prefix='/api/collection-banners')
 app.register_blueprint(collections_bp, url_prefix='/api/collections')
 app.register_blueprint(gold_rate_bp, url_prefix='/api/gold-rate')
 app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
 app.register_blueprint(high_demand_bp, url_prefix='/api/high-demand')
+
+
 
 
 from flask import request
