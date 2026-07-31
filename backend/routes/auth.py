@@ -12,7 +12,7 @@ from backend.extensions import db
 from backend.models.user import UserModel, DeliveryAddress
 from backend.models.otp_verification import OTPVerification
 from backend.utils.helpers import generate_otp, verify_otp, is_valid_email, is_allowed_email_domain, normalize_email
-from backend.utils.email_service import send_email
+from backend.utils.email_service import send_email, send_forgot_password_otp, send_registration_otp
 from backend.utils.timezone import format_iso_datetime, get_ist_time
 from backend.utils.security import mask_email, mask_name
 
@@ -536,13 +536,16 @@ def user_login_route():
 def forgot_password():
     data = request.get_json() or {}
     raw_input = data.get("email") or data.get("email_or_mobile")
+    print(f"[FORGOT PASSWORD] Step 1: Request received for input: '{raw_input}'")
     
     if not raw_input:
+        print("[FORGOT PASSWORD ERROR] Missing email or mobile parameter.")
         return jsonify({"message": "Please provide your registered email or mobile number."}), 400
 
     email_or_mobile = normalize_email(raw_input) if is_valid_email(raw_input) else str(raw_input).strip()
         
     if is_valid_email(email_or_mobile) and not is_allowed_email_domain(email_or_mobile):
+        print(f"[FORGOT PASSWORD ERROR] Unsupported email domain: '{email_or_mobile}'")
         return jsonify({"message": "Only Gmail (@gmail.com) and Outlook (@outlook.com) email addresses are supported."}), 400
         
     user_obj = UserModel.query.filter(
@@ -550,8 +553,11 @@ def forgot_password():
     ).first()
     
     if not user_obj:
+        print(f"[FORGOT PASSWORD ERROR] Account not found for email/mobile: '{email_or_mobile}'")
         return jsonify({"message": "Account not found. Please register first."}), 404
         
+    print(f"[FORGOT PASSWORD] Step 2: Registered user found: '{user_obj.name}' ({user_obj.email})")
+
     current_time = get_ist_time()
     
     # Invalidate expired records automatically
@@ -576,49 +582,29 @@ def forgot_password():
     )
     db.session.add(otp_record)
     db.session.commit()
+    print(f"[FORGOT PASSWORD] Step 3: OTP '{otp_code}' generated and stored securely for user_id={user_obj.id} (expires at {expires_at})")
     
-    # Send email or handle development mode
-    otp_mode = os.getenv("OTP_MODE", "development").lower()
-    if otp_mode == "development":
-        email_result = {"status": "mocked", "configuration": "development"}
-    else:
-        subject = "SSJewellery Password Reset Code"
-        body = f"""Hello,
+    # Send email via SMTP
+    print(f"[FORGOT PASSWORD] Step 4: Initiating SMTP email dispatch to {user_obj.email}...")
+    email_result = send_forgot_password_otp(user_obj.email, otp_code, name=user_obj.name)
     
-We received a request to reset the password for your SSJewellery account.
-
-Your verification code is:
-
-{otp_code}
-
-This OTP is valid for 5 minutes.
-
-If you did not request a password reset, please ignore this email.
-
-Regards,
-SSJewellery Team"""
+    if not email_result:
+        err_detail = email_result.get('error', 'SMTP connection failed') if isinstance(email_result, dict) else 'SMTP transmission failed'
+        print(f"[FORGOT PASSWORD ERROR] Step 5: SMTP failure for {user_obj.email}: {err_detail}")
+        db.session.delete(otp_record)
+        db.session.commit()
+        return jsonify({
+            "message": f"SMTP transmission failed: {err_detail}",
+            "success": False,
+            "error": err_detail
+        }), 500
         
-        email_result = send_email(user_obj.email, subject, body)
-        if not email_result:
-            db.session.delete(otp_record)
-            db.session.commit()
-            return jsonify({
-                "message": "SMTP transmission failed. Unable to send password reset email.",
-                "success": False
-            }), 500
-        
-    response_payload = {
+    print(f"[FORGOT PASSWORD SUCCESS] Step 5: Password reset OTP email successfully sent to {user_obj.email} via SMTP")
+    return jsonify({
         "message": "Verification OTP sent successfully! Please check your email.",
         "success": True,
         "email": user_obj.email
-    }
-    if otp_mode == "development":
-        response_payload["otp"] = otp_code
-        response_payload["otp_mode"] = "development"
-    else:
-        response_payload["otp_mode"] = "production"
-
-    return jsonify(response_payload), 200
+    }), 200
 
 @auth_bp.route('/verify-reset-otp', methods=['POST'])
 def verify_reset_otp():
@@ -678,6 +664,7 @@ def verify_reset_otp():
 def resend_reset_otp():
     data = request.get_json() or {}
     raw_input = data.get("email") or data.get("email_or_mobile")
+    print(f"[RESEND RESET OTP] Step 1: Request received for input: '{raw_input}'")
     if not raw_input:
         return jsonify({"message": "Email is required."}), 400
 
@@ -707,48 +694,27 @@ def resend_reset_otp():
     otp_record.attempts = 0
     otp_record.resend_attempts += 1
     db.session.commit()
+    print(f"[RESEND RESET OTP] Step 2: New OTP '{otp_code}' generated for user '{user_obj.name}' ({user_obj.email})")
     
-    # Send email or handle development mode
-    otp_mode = os.getenv("OTP_MODE", "development").lower()
-    if otp_mode == "development":
-        email_result = {"status": "mocked", "configuration": "development"}
-    else:
-        subject = "SSJewellery Password Reset Code"
-        body = f"""Hello,
-    
-We received a request to reset the password for your SSJewellery account.
-
-Your verification code is:
-
-{otp_code}
-
-This OTP is valid for 5 minutes.
-
-If you did not request a password reset, please ignore this email.
-
-Regards,
-SSJewellery Team"""
-
-        email_result = send_email(user_obj.email, subject, body)
-        if not email_result:
-            otp_record.resend_attempts = max(0, otp_record.resend_attempts - 1)
-            db.session.commit()
-            return jsonify({
-                "message": "SMTP transmission failed. Unable to resend password reset email.",
-                "success": False
-            }), 500
+    # Send email via SMTP
+    print(f"[RESEND RESET OTP] Step 3: Initiating SMTP email dispatch to {user_obj.email}...")
+    email_result = send_forgot_password_otp(user_obj.email, otp_code, name=user_obj.name)
+    if not email_result:
+        err_detail = email_result.get('error', 'SMTP connection failed') if isinstance(email_result, dict) else 'SMTP transmission failed'
+        print(f"[RESEND RESET OTP ERROR] SMTP failure for {user_obj.email}: {err_detail}")
+        otp_record.resend_attempts = max(0, otp_record.resend_attempts - 1)
+        db.session.commit()
+        return jsonify({
+            "message": f"SMTP transmission failed: {err_detail}",
+            "success": False,
+            "error": err_detail
+        }), 500
         
-    response_payload = {
+    print(f"[RESEND RESET OTP SUCCESS] Password reset OTP email resent to {user_obj.email}")
+    return jsonify({
         "message": "Verification OTP resent successfully! Please check your email.",
         "success": True
-    }
-    if otp_mode == "development":
-        response_payload["otp"] = otp_code
-        response_payload["otp_mode"] = "development"
-    else:
-        response_payload["otp_mode"] = "production"
-
-    return jsonify(response_payload), 200
+    }), 200
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
@@ -1880,6 +1846,22 @@ def transition_buy_request(request_id):
                     type="BUY_REQUEST",
                     user_id=req.user_id
                 )
+
+                if req.user and req.user.email:
+                    try:
+                        from backend.utils.email_service import send_buy_request_approval
+                        send_buy_request_approval(
+                            to_email=req.user.email,
+                            product_name=req.product_name,
+                            request_id=req.id,
+                            quantity=req.quantity,
+                            availability_date=req.expected_availability_date,
+                            delivery_date=req.expected_delivery_date,
+                            admin_note=req.admin_note,
+                            name=req.user.name
+                        )
+                    except Exception as mail_ex:
+                        print("Failed to send buy request availability email:", mail_ex)
         except Exception as ex:
             print("Error transitioning buy request to Available:", ex)
 

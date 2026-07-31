@@ -137,8 +137,12 @@ class Config:
     ENABLE_PAYMENT = _get_bool_env("ENABLE_PAYMENT", default_feature_flag)
     ENABLE_SMS = _get_bool_env("ENABLE_SMS", default_feature_flag)
     ENABLE_OTP = _get_bool_env("ENABLE_OTP", default_feature_flag)
-    ENABLE_EMAIL = _get_bool_env("ENABLE_EMAIL", default_feature_flag)
-    ENABLE_ORDER_CONFIRMATION = _get_bool_env("ENABLE_ORDER_CONFIRMATION", default_feature_flag)
+    ENABLE_EMAIL = _get_bool_env("ENABLE_EMAIL", True)
+    ENABLE_ORDER_CONFIRMATION = _get_bool_env("ENABLE_ORDER_CONFIRMATION", True)
+    ENABLE_EMAIL_FORGOT_PASSWORD_OTP = _get_bool_env("ENABLE_EMAIL_FORGOT_PASSWORD_OTP", True)
+    ENABLE_EMAIL_ORDER_CONFIRMATION = _get_bool_env("ENABLE_EMAIL_ORDER_CONFIRMATION", True)
+    ENABLE_EMAIL_BUY_REQUEST_CONFIRMATION = _get_bool_env("ENABLE_EMAIL_BUY_REQUEST_CONFIRMATION", True)
+    ENABLE_EMAIL_REGISTRATION_OTP = _get_bool_env("ENABLE_EMAIL_REGISTRATION_OTP", False)
     ENABLE_PUSH_NOTIFICATIONS = _get_bool_env("ENABLE_PUSH_NOTIFICATIONS", default_feature_flag)
     ENABLE_WEBHOOKS = _get_bool_env("ENABLE_WEBHOOKS", default_feature_flag)
     ENABLE_ANALYTICS = _get_bool_env("ENABLE_ANALYTICS", default_feature_flag)
@@ -166,16 +170,24 @@ class Config:
         RAZORPAY_KEY_ID = os.environ.get("PROD_RAZORPAY_KEY_ID") or os.environ.get("RAZORPAY_KEY_ID")
         RAZORPAY_KEY_SECRET = os.environ.get("PROD_RAZORPAY_KEY_SECRET") or os.environ.get("RAZORPAY_KEY_SECRET")
 
-    # Flask-Mail Configuration
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
-    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+    # Centralized Gmail SMTP Configuration Constants
+    SMTP_HOST = "smtp.gmail.com"
+    SMTP_PORT = 587
+    SMTP_TLS = True
+
+    # Sensitive SMTP Credentials (Runtime OS Environment Variables Only)
+    SMTP_EMAIL = os.environ.get("SMTP_EMAIL") or os.environ.get("MAIL_USERNAME") or os.environ.get("EMAIL_ADDRESS") or "ssjewellerysystem@gmail.com"
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD") or os.environ.get("MAIL_PASSWORD") or os.environ.get("EMAIL_APP_PASSWORD")
+    SMTP_FROM = f"SSJewellery <{SMTP_EMAIL}>" if SMTP_EMAIL else "SSJewellery <ssjewellerysystem@gmail.com>"
+
+    # Flask-Mail Compatibility Configuration
+    MAIL_SERVER = SMTP_HOST
+    MAIL_PORT = SMTP_PORT
+    MAIL_USE_TLS = SMTP_TLS
     MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL", "False").lower() in ("true", "1", "yes")
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME") or os.environ.get("EMAIL_ADDRESS")
-    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD") or os.environ.get("EMAIL_APP_PASSWORD")
-    
-    _default_user = os.environ.get("MAIL_USERNAME") or os.environ.get("EMAIL_ADDRESS")
-    MAIL_DEFAULT_SENDER = os.environ.get("SMTP_FROM") or (f"SSJewellery <{_default_user}>" if _default_user else "SSJewellery <no-reply@SSJewellery.com>")
+    MAIL_USERNAME = SMTP_EMAIL
+    MAIL_PASSWORD = SMTP_PASSWORD
+    MAIL_DEFAULT_SENDER = SMTP_FROM
 
     # OAuth Credentials
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
@@ -197,6 +209,32 @@ class Config:
         CLOUDINARY_API_KEY = os.environ.get("PROD_CLOUDINARY_API_KEY") or os.environ.get("CLOUDINARY_API_KEY")
         CLOUDINARY_API_SECRET = os.environ.get("PROD_CLOUDINARY_API_SECRET") or os.environ.get("CLOUDINARY_API_SECRET")
 
+def validate_smtp_configuration():
+    """
+    Startup Validation for Gmail SMTP configuration.
+    Verifies presence of SMTP_EMAIL and SMTP_PASSWORD runtime environment variables.
+    If missing, logs a clear warning without crashing the application.
+    """
+    smtp_email = Config.SMTP_EMAIL
+    smtp_password = Config.SMTP_PASSWORD
+
+    missing_items = []
+    if not smtp_email:
+        missing_items.append("SMTP_EMAIL")
+    if not smtp_password:
+        missing_items.append("SMTP_PASSWORD")
+
+    if missing_items:
+        print("\n" + "="*70)
+        print(" [SMTP CONFIGURATION WARNING] Missing Required OS Environment Variable(s):")
+        for item in missing_items:
+            print(f"   - {item}")
+        print(" Warning: Gmail SMTP email transmission will fail until set in OS Environment.")
+        print(" Note: All other website functionality will continue operating normally.")
+        print("="*70 + "\n")
+    else:
+        print(f"[SMTP SUCCESS] Gmail SMTP runtime environment configuration validated for: {smtp_email}")
+
 def validate_environment():
     """
     Startup environment validation module for backend.
@@ -206,6 +244,8 @@ def validate_environment():
     print(f"[CONFIG] Active Environment: {ENVIRONMENT}")
     print(f"[CONFIG] Feature Flags: PAYMENT={Config.ENABLE_PAYMENT}, SMS={Config.ENABLE_SMS}, OTP={Config.ENABLE_OTP}, EMAIL={Config.ENABLE_EMAIL}, ORDER_CONF={Config.ENABLE_ORDER_CONFIRMATION}, RAPID_API={Config.ENABLE_RAPID_API}, ANALYTICS={Config.ENABLE_ANALYTICS}")
     print(f"[CONFIG] Logging Level: {Config.LOGGING_LEVEL}\n")
+
+    validate_smtp_configuration()
 
     if IS_DEV:
         print(f"[CONFIG SUCCESS] Application initialized in DEVELOPMENT mode (FRONTEND_URL: {FRONTEND_URL or 'http://localhost:5173'}).")

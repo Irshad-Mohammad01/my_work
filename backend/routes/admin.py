@@ -1002,10 +1002,17 @@ def update_buy_request_status(id):
             
             if req.user and req.user.email:
                 try:
-                    from backend.utils.email_service import send_email
-                    email_subject = f"Your Buy Request for {req.product_name} is Confirmed!"
-                    email_body = f"Hello {req.user.name or 'Customer'},\n\nYour buy request for '{req.product_name}' (Quantity: {req.quantity}) has been confirmed by the administrator.\n\nExpected Product Availability: {expected_availability_date}\nExpected Delivery Date: {expected_delivery_date}\nAdmin Note: {admin_note or 'No additional notes.'}\n\nStatus: Confirmed\n\nWe will notify you as soon as the item is available for checkout.\n\nBest regards,\nSSJewellery Team"
-                    send_email(req.user.email, email_subject, email_body)
+                    from backend.utils.email_service import send_buy_request_approval
+                    send_buy_request_approval(
+                        to_email=req.user.email,
+                        product_name=req.product_name,
+                        request_id=req.id,
+                        quantity=req.quantity,
+                        availability_date=expected_availability_date,
+                        delivery_date=expected_delivery_date,
+                        admin_note=admin_note,
+                        name=req.user.name
+                    )
                 except Exception as mail_ex:
                     print("Failed to send buy request confirmation email:", mail_ex)
         elif status == 'Approved':
