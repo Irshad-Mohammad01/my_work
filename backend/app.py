@@ -410,6 +410,18 @@ with app.app_context():
     except Exception as err:
         print("[APP] Gold rate scheduler error:", err)
 
+    # API Route Discovery Logger: Print registered routes during startup
+    print("\n" + "=" * 60)
+    print("[API DISCOVERY] Registered Backend API Endpoints:")
+    registered_routes = sorted(
+        [(','.join(sorted(rule.methods - {'HEAD', 'OPTIONS'})), rule.rule, rule.endpoint) for rule in app.url_map.iter_rules()],
+        key=lambda x: x[1]
+    )
+    for methods, rule, endpoint in registered_routes:
+        if methods:
+            print(f"  {methods:<10} {rule:<42} [{endpoint}]")
+    print("=" * 60 + "\n")
+
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5005))
     app.run(host='0.0.0.0', port=port, debug=False)
