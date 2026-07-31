@@ -44,9 +44,11 @@ export const CollectionBannerManagement = ({ collections = [] }) => {
     setFetchError('');
     try {
       const endpoint = getCollectionBannerEndpoint();
+      console.log("[CollectionBannerManagement FE LOG] Requesting GET collection banners from:", endpoint);
       const res = await axios.get(endpoint);
       setBanners(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
+
       console.error("[CollectionBannerManagement] Error loading collection banners:", err);
       const status = err.response?.status;
       const errDetail = err.response?.data?.message || err.response?.data?.dev_hint || err.message;

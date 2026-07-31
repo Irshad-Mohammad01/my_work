@@ -29,8 +29,10 @@ export const CollectionBanner = ({ collectionName }) => {
     setImageLoaded(false);
 
     const endpointUrl = getCollectionBannerEndpoint(`/${encodeURIComponent(collectionName)}`);
+    console.log(`[CollectionBanner FE LOG] Fetching collection banner for '${collectionName}' from:`, endpointUrl);
 
     axios.get(endpointUrl)
+
       .then(res => {
         if (isMounted) {
           if (res.data && res.data.banner && res.data.banner.is_active) {
