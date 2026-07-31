@@ -259,7 +259,13 @@ def not_found(error):
 
 @app.errorhandler(500)
 def server_error(error):
-    return jsonify({"message": f"Internal server error: {str(error)}"}), 500
+    logging.error(f"[GLOBAL 500 ERROR] Internal server error: {error}", exc_info=True)
+    return jsonify({"success": False, "message": f"Internal server error: {str(error)}"}), 500
+
+@app.errorhandler(Exception)
+def handle_uncaught_exception(error):
+    logging.error(f"[UNCAUGHT EXCEPTION] Unhandled exception occurred: {error}", exc_info=True)
+    return jsonify({"success": False, "message": "An unexpected server error occurred."}), 500
 
 def seed_database():
     """
