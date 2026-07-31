@@ -620,11 +620,20 @@ def forgot_password():
             # Robust fallback Python-side check across user records if direct query produces no match
             if not user_obj:
                 all_users = UserModel.query.all()
+                clean_digits = ''.join(filter(str.isdigit, clean_input))
                 for u in all_users:
                     u_email = (u.email or "").strip().lower()
                     u_phone = str(u.phone or "").strip()
                     u_mobile = str(u.mobile or "").strip()
-                    if u_email == clean_lower or u_phone == clean_input or u_mobile == clean_input:
+                    u_phone_digits = ''.join(filter(str.isdigit, u_phone))
+                    u_mobile_digits = ''.join(filter(str.isdigit, u_mobile))
+
+                    if (
+                        u_email == clean_lower or 
+                        u_phone == clean_input or 
+                        u_mobile == clean_input or
+                        (clean_digits and len(clean_digits) >= 10 and (clean_digits == u_phone_digits[-10:] or clean_digits == u_mobile_digits[-10:]))
+                    ):
                         user_obj = u
                         break
         except Exception as lookup_err:
