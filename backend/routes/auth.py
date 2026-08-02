@@ -244,13 +244,20 @@ def send_otp_route():
     db.session.add(otp_record)
     db.session.commit()
     
-    # Send email or handle development mode
-    otp_mode = os.getenv("OTP_MODE", "development").lower()
-    if otp_mode == "development":
-        email_result = {"status": "mocked", "configuration": "development"}
-    else:
-        subject = "SSJewellery Verification Code"
-        body = f"""Hello,
+    # DEV Environment: Skip SMTP and return dev_otp directly
+    if Config.IS_DEV:
+        current_app.logger.info(f"[REGISTRATION DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+        print(f"[REGISTRATION DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+        return jsonify({
+            "success": True,
+            "message": "DEV MODE",
+            "dev_otp": otp_code,
+            "otp": otp_code
+        }), 200
+        
+    # Send email via SMTP (QA & PRODUCTION ONLY)
+    subject = "SSJewellery Verification Code"
+    body = f"""Hello,
 
 Welcome to SSJewellery.
 
@@ -264,31 +271,24 @@ Do not share this code with anyone.
 
 Regards,
 SSJewellery Team"""
+    
+    email_result = send_email(email, subject, body)
+    if not email_result:
+        db.session.delete(otp_record)
+        db.session.commit()
+        return jsonify({
+            "message": f"SMTP transmission failed: {email_result.get('error', 'Unable to connect to SMTP server')}",
+            "success": False,
+            "smtp_status": email_result.get("status"),
+            "smtp_config": email_result.get("configuration")
+        }), 500
         
-        email_result = send_email(email, subject, body)
-        if not email_result:
-            db.session.delete(otp_record)
-            db.session.commit()
-            return jsonify({
-                "message": f"SMTP transmission failed: {email_result.get('error', 'Unable to connect to SMTP server')}",
-                "success": False,
-                "smtp_status": email_result.get("status"),
-                "smtp_config": email_result.get("configuration")
-            }), 500
-        
-    response_payload = {
+    return jsonify({
         "message": "Verification OTP sent successfully! Please check your email.",
         "success": True,
         "smtp_status": email_result.get("status") if email_result else None,
         "smtp_config": email_result.get("configuration") if email_result else None
-    }
-    if otp_mode == "development":
-        response_payload["otp"] = otp_code
-        response_payload["otp_mode"] = "development"
-    else:
-        response_payload["otp_mode"] = "production"
-
-    return jsonify(response_payload), 200
+    }), 200
 
 
 @auth_bp.route('/verify-otp', methods=['POST'])
@@ -411,13 +411,20 @@ def resend_otp_route():
     otp_record.resend_attempts += 1
     db.session.commit()
     
-    # Send email or handle development mode
-    otp_mode = os.getenv("OTP_MODE", "development").lower()
-    if otp_mode == "development":
-        email_result = {"status": "mocked", "configuration": "development"}
-    else:
-        subject = "SSJewellery Verification Code"
-        body = f"""Hello,
+    # DEV Environment: Skip SMTP and return dev_otp directly
+    if Config.IS_DEV:
+        current_app.logger.info(f"[REGISTRATION RESEND DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+        print(f"[REGISTRATION RESEND DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+        return jsonify({
+            "success": True,
+            "message": "DEV MODE",
+            "dev_otp": otp_code,
+            "otp": otp_code
+        }), 200
+        
+    # Send email via SMTP (QA & PRODUCTION ONLY)
+    subject = "SSJewellery Verification Code"
+    body = f"""Hello,
 
 Welcome to SSJewellery.
 
@@ -431,31 +438,24 @@ Do not share this code with anyone.
 
 Regards,
 SSJewellery Team"""
+    
+    email_result = send_email(email, subject, body)
+    if not email_result:
+        otp_record.resend_attempts = max(0, otp_record.resend_attempts - 1)
+        db.session.commit()
+        return jsonify({
+            "message": f"SMTP transmission failed: {email_result.get('error', 'Unable to connect to SMTP server')}",
+            "success": False,
+            "smtp_status": email_result.get("status"),
+            "smtp_config": email_result.get("configuration")
+        }), 500
         
-        email_result = send_email(email, subject, body)
-        if not email_result:
-            otp_record.resend_attempts = max(0, otp_record.resend_attempts - 1)
-            db.session.commit()
-            return jsonify({
-                "message": f"SMTP transmission failed: {email_result.get('error', 'Unable to connect to SMTP server')}",
-                "success": False,
-                "smtp_status": email_result.get("status"),
-                "smtp_config": email_result.get("configuration")
-            }), 500
-        
-    response_payload = {
+    return jsonify({
         "message": "Verification OTP resent successfully! Please check your email.",
         "success": True,
         "smtp_status": email_result.get("status") if email_result else None,
         "smtp_config": email_result.get("configuration") if email_result else None
-    }
-    if otp_mode == "development":
-        response_payload["otp"] = otp_code
-        response_payload["otp_mode"] = "development"
-    else:
-        response_payload["otp_mode"] = "production"
-
-    return jsonify(response_payload), 200
+    }), 200
 
 
 @auth_bp.route('/user-login', methods=['POST'])
@@ -681,13 +681,14 @@ def forgot_password():
             current_app.logger.error(f"[FORGOT PASSWORD ERROR] Database failed during OTP save: {otp_save_err}\n{traceback.format_exc()}")
             raise DatabaseException("Database error.", status_code=500)
 
-        # DEV Environment: Skip SMTP and return OTP in response directly
+        # DEV Environment: Skip SMTP and return dev_otp in response directly
         if Config.IS_DEV:
-            current_app.logger.info(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
-            print(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+            current_app.logger.info(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+            print(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
             return jsonify({
                 "success": True,
-                "message": "DEV MODE: OTP generated successfully.",
+                "message": "DEV MODE",
+                "dev_otp": otp_code,
                 "otp": otp_code,
                 "email": user_obj.email
             }), 200
@@ -851,13 +852,14 @@ def resend_reset_otp():
     db.session.commit()
     print(f"[RESEND RESET OTP] Step 2: New OTP '{otp_code}' generated for user '{user_obj.name}' ({user_obj.email})")
     
-    # DEV Environment: Skip SMTP and return OTP in response directly
+    # DEV Environment: Skip SMTP and return dev_otp in response directly
     if Config.IS_DEV:
-        current_app.logger.info(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
-        print(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+        current_app.logger.info(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
+        print(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning dev_otp.")
         return jsonify({
             "success": True,
-            "message": "DEV MODE: OTP resent successfully.",
+            "message": "DEV MODE",
+            "dev_otp": otp_code,
             "otp": otp_code,
             "email": user_obj.email
         }), 200
