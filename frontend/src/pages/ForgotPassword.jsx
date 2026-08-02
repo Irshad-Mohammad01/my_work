@@ -291,6 +291,23 @@ export const ForgotPassword = () => {
                 <ArrowRight className="h-4.5 w-4.5" />
               </button>
 
+              {devOtp && (
+                <div className="mt-4 p-4 bg-amber-50/80 dark:bg-amber-950/30 border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl text-center shadow-md backdrop-blur-sm">
+                  <div className="text-xs font-black tracking-wider text-amber-700 dark:text-amber-400 uppercase mb-1">
+                    DEV MODE ONLY
+                  </div>
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">
+                    Generated OTP:
+                  </div>
+                  <div className="text-3xl font-black tracking-widest text-amber-600 dark:text-amber-400 my-1 select-all">
+                    {devOtp}
+                  </div>
+                  <div className="text-[11px] font-semibold italic text-slate-500 dark:text-slate-400 mt-1">
+                    (Email sending disabled)
+                  </div>
+                </div>
+              )}
+
               <div className="text-center mt-4">
                 <Link
                   to="/login"
@@ -336,14 +353,19 @@ export const ForgotPassword = () => {
                 ))}
               </div>
 
-              {otpMode === 'development' && devOtp && (
-                <div className="mt-4 p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl text-center shadow-sm backdrop-blur-sm">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 mb-1.5 rounded-full bg-amber-100 dark:bg-amber-950/40 border border-amber-300/30 text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    Development Mode OTP
+              {devOtp && (
+                <div className="mt-4 p-4 bg-amber-50/80 dark:bg-amber-950/30 border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl text-center shadow-md backdrop-blur-sm">
+                  <div className="text-xs font-black tracking-wider text-amber-700 dark:text-amber-400 uppercase mb-1">
+                    DEV MODE ONLY
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-350">
-                    Development OTP: <strong className="text-amber-700 dark:text-amber-400 text-base tracking-widest font-black ml-1 select-all">{devOtp}</strong>
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">
+                    Generated OTP:
+                  </div>
+                  <div className="text-3xl font-black tracking-widest text-amber-600 dark:text-amber-400 my-1 select-all">
+                    {devOtp}
+                  </div>
+                  <div className="text-[11px] font-semibold italic text-slate-500 dark:text-slate-400 mt-1">
+                    (Email sending disabled)
                   </div>
                 </div>
               )}

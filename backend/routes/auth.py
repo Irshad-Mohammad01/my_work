@@ -680,8 +680,19 @@ def forgot_password():
             db.session.rollback()
             current_app.logger.error(f"[FORGOT PASSWORD ERROR] Database failed during OTP save: {otp_save_err}\n{traceback.format_exc()}")
             raise DatabaseException("Database error.", status_code=500)
+
+        # DEV Environment: Skip SMTP and return OTP in response directly
+        if Config.IS_DEV:
+            current_app.logger.info(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+            print(f"[FORGOT PASSWORD DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+            return jsonify({
+                "success": True,
+                "message": "DEV MODE: OTP generated successfully.",
+                "otp": otp_code,
+                "email": user_obj.email
+            }), 200
         
-        # Step 4: SMTP Initialization & Transmission
+        # Step 4: SMTP Initialization & Transmission (QA & PRODUCTION ONLY)
         if not user_obj.email or "@" not in str(user_obj.email):
             current_app.logger.error(f"[FORGOT PASSWORD ERROR] User ID {user_obj.id} has invalid or missing email: '{user_obj.email}'")
             try:
@@ -720,17 +731,12 @@ def forgot_password():
             
         current_app.logger.info(f"[FORGOT PASSWORD SUCCESS] OTP email successfully dispatched to {user_obj.email}")
         
-        # Step 8: Return 200 OK Response
+        # Return 200 OK Response for QA & PRODUCTION (OTP never exposed)
         response_payload = {
             "success": True,
             "message": "OTP sent successfully.",
             "email": user_obj.email
         }
-        otp_mode = os.getenv("OTP_MODE", "development").lower()
-        if otp_mode == "development":
-            response_payload["otp"] = otp_code
-            response_payload["otp_mode"] = "development"
-
         return jsonify(response_payload), 200
 
     except ValidationException as val_ex:
@@ -845,7 +851,18 @@ def resend_reset_otp():
     db.session.commit()
     print(f"[RESEND RESET OTP] Step 2: New OTP '{otp_code}' generated for user '{user_obj.name}' ({user_obj.email})")
     
-    # Send email via SMTP
+    # DEV Environment: Skip SMTP and return OTP in response directly
+    if Config.IS_DEV:
+        current_app.logger.info(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+        print(f"[RESEND RESET OTP DEV LOG] DEV mode active. Skipping SMTP completely. Returning OTP in response.")
+        return jsonify({
+            "success": True,
+            "message": "DEV MODE: OTP resent successfully.",
+            "otp": otp_code,
+            "email": user_obj.email
+        }), 200
+
+    # Send email via SMTP (QA & PRODUCTION ONLY)
     print(f"[RESEND RESET OTP] Step 3: Initiating SMTP email dispatch to {user_obj.email}...")
     email_result = send_forgot_password_otp(user_obj.email, otp_code, name=user_obj.name)
     if not email_result:
