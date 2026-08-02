@@ -203,15 +203,30 @@ export const Login = () => {
       return;
     }
 
+    if (resetNewPassword.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const resetIdentifier = normalizeEmail(resetEmailOrMobile.trim());
+      const cleanResetInput = resetEmailOrMobile.trim();
+      const isResetEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanResetInput) || cleanResetInput.includes('@');
+      const resetIdentifier = isResetEmail ? normalizeEmail(cleanResetInput) : cleanResetInput;
+
+      // Step 1: Call production OTP verification endpoint to validate code and mark is_verified = True in DB
+      await axios.post(`${API_BASE_URL}/auth/verify-reset-otp`, {
+        email: resetIdentifier,
+        otp: resetOtp.trim()
+      });
+
+      // Step 2: Now call production reset-password endpoint
       const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
         email: resetIdentifier,
-        otp: resetOtp.trim(),
         new_password: resetNewPassword
       });
-      setResetSuccessMessage("Password reset successfully! Redirecting to login...");
+
+      setResetSuccessMessage(response.data.message || "Password reset successfully! Redirecting to login...");
       setResetDevOtp('');
       setTimeout(() => {
         setShowForgotPassword(false);
@@ -226,7 +241,7 @@ export const Login = () => {
       }, 2000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Failed to reset password. Please verify the OTP.");
+      setError(err.response?.data?.message || "Failed to reset password. Please check your verification OTP.");
     } finally {
       setLoading(false);
     }
