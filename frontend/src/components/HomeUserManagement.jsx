@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Calendar, Check, Lock, DollarSign, Search, Plus, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Calendar, Check, Lock, DollarSign, Search, Plus, Eye, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp } from 'lucide-react';
 
 const formatDateTime = (isoString) => {
   if (!isoString) return { date: 'N/A', time: 'N/A' };
@@ -49,69 +49,71 @@ export const HomeUserManagement = ({
   indexOfLastItem,
   filteredUsers,
   totalPages,
-  userPage
+  userPage,
+  userStatusSortMode = 0,
+  setUserStatusSortMode
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Analytics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-blue-500/10 p-3 rounded-xl text-blue-500">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Registered</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 items-stretch">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Total Registered</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.total_users ?? 0}
             </span>
           </div>
+          <div className="bg-blue-500/10 p-2 sm:p-3 rounded-xl text-blue-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-indigo-500/10 p-3 rounded-xl text-indigo-500">
-            <Calendar className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">New This Month</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">New This Month</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.new_users_this_month ?? 0}
             </span>
           </div>
+          <div className="bg-indigo-500/10 p-2 sm:p-3 rounded-xl text-indigo-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Calendar className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-emerald-500/10 p-3 rounded-xl text-emerald-500">
-            <Check className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Active Customers</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Active Customers</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.active_users ?? 0}
             </span>
           </div>
+          <div className="bg-[#DCFCE7] dark:bg-[#163B2A] p-2 sm:p-3 rounded-xl flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Check className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-[#16A34A] dark:text-[#86EFAC]" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-rose-500/10 p-3 rounded-xl text-rose-500">
-            <Lock className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Blocked Users</span>
-            <span className="text-xl font-black text-slate-855 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Blocked Users</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-855 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.blocked_users ?? 0}
             </span>
           </div>
+          <div className="bg-rose-500/10 p-2 sm:p-3 rounded-xl text-rose-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Lock className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4 col-span-1 sm:col-span-2 lg:col-span-1">
-          <div className="bg-amber-500/10 p-3 rounded-xl text-amber-500">
-            <DollarSign className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Revenue</span>
-            <span className="text-xl font-black text-slate-855 dark:text-white mt-0.5 block price-amount">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-2 sm:col-span-1 lg:col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Total Revenue</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-855 dark:text-white mt-0.5 block price-amount truncate leading-none">
               ₹{formatPrice(usersAnalytics?.total_revenue ?? 0)}
             </span>
+          </div>
+          <div className="bg-amber-500/10 p-2 sm:p-2.5 rounded-xl text-amber-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <DollarSign className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
           </div>
         </div>
       </div>
@@ -184,7 +186,38 @@ export const HomeUserManagement = ({
                 <th className="py-4 px-6 font-bold text-center">Total Spending</th>
                 <th className="py-4 px-6 font-bold text-center">Pending Orders</th>
                 <th className="py-4 px-6 font-bold text-center">Delivered Orders</th>
-                <th className="py-4 px-6 font-bold">Account Status</th>
+                <th className="py-4 px-6 font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setUserStatusSortMode && setUserStatusSortMode(prev => (prev + 1) % 4)}
+                    title={
+                      userStatusSortMode === 1
+                        ? "Status Order: Active → Inactive → Blocked (Click for Inactive → Active → Blocked)"
+                        : userStatusSortMode === 2
+                        ? "Status Order: Inactive → Active → Blocked (Click for Blocked → Active → Inactive)"
+                        : userStatusSortMode === 3
+                        ? "Status Order: Blocked → Active → Inactive (Click to reset default order)"
+                        : "Status Order: Default / Unsorted (Click to sort Active → Inactive → Blocked)"
+                    }
+                    aria-label={
+                      userStatusSortMode === 1
+                        ? "Status sort: Active first. Click for Inactive first."
+                        : userStatusSortMode === 2
+                        ? "Status sort: Inactive first. Click for Blocked first."
+                        : userStatusSortMode === 3
+                        ? "Status sort: Blocked first. Click to reset."
+                        : "Status sort: default order. Click to sort Active first."
+                    }
+                    className="inline-flex items-center gap-1.5 font-bold cursor-pointer hover:text-slate-800 dark:hover:text-slate-100 transition-colors select-none group uppercase tracking-wider"
+                  >
+                    <span>Account Status</span>
+                    {userStatusSortMode === 0 ? (
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
+                    ) : (
+                      <ArrowUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 transition-colors shrink-0" />
+                    )}
+                  </button>
+                </th>
                 <th className="py-4 px-6 font-bold text-center">Actions</th>
               </tr>
             </thead>
@@ -246,22 +279,18 @@ export const HomeUserManagement = ({
                       <td className="py-4 px-6 text-center font-bold text-amber-500">
                         {pendingOrdersCount}
                       </td>
-                      <td className="py-4 px-6 text-center font-bold text-emerald-500">
+                      <td className="py-4 px-6 text-center font-bold text-[#86EFAC]">
                         {deliveredOrdersCount}
                       </td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm ${
-                          (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'active'
+                          (u.status || (u.is_blocked ? "Blocked" : "Inactive")).toLowerCase() === 'active'
                             ? 'bg-[#22C55E] text-[#FFFFFF] border-[#16A34A]'
-                            : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'inactive'
-                            ? 'bg-[#6B7280] text-[#FFFFFF] border-[#4B5563]'
-                            : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'suspended'
-                            ? 'bg-[#EF4444] text-[#FFFFFF] border-[#DC2626]'
-                            : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'pending verification'
-                            ? 'bg-[#F59E0B] text-[#FFFFFF] border-[#D97706]'
-                            : 'bg-[#B91C1C] text-[#FFFFFF] border-[#991B1B]'
+                            : (u.status || (u.is_blocked ? "Blocked" : "Inactive")).toLowerCase() === 'inactive'
+                            ? 'bg-[#F97316] text-[#FFFFFF] border-[#EA580C]'
+                            : 'bg-[#EF4444] text-[#FFFFFF] border-[#DC2626]'
                         }`}>
-                          {u.status || (u.is_blocked ? "Blocked" : "Active")}
+                          {u.status || (u.is_blocked ? "Blocked" : "Inactive")}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-center">

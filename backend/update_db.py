@@ -113,6 +113,62 @@ def run_updates():
             print("Failed to backpopulate category translations and clean images:", e)
 
 
+        # Migrate user_login_attempts table -> user_attempts and add OTP rate limiting columns
+        try:
+            engine = db.engine
+            dialect_name = engine.dialect.name
+            inspector = db.inspect(engine)
+            tables = inspector.get_table_names()
+
+            # 1. Rename table user_login_attempts -> user_attempts if user_attempts does not exist
+            if 'user_login_attempts' in tables and 'user_attempts' not in tables:
+                print("[MIGRATION] Renaming table 'user_login_attempts' to 'user_attempts'...")
+                db.session.execute(db.text("ALTER TABLE user_login_attempts RENAME TO user_attempts"))
+                db.session.commit()
+                print("[MIGRATION] Table renamed to 'user_attempts' successfully.")
+
+            # Re-inspect table names and columns
+            inspector = db.inspect(engine)
+            tables = inspector.get_table_names()
+            if 'user_attempts' in tables:
+                columns = [c['name'] for c in inspector.get_columns('user_attempts')]
+                
+                # 2. Rename failed_attempts -> failed_login_attempts if needed
+                if 'failed_attempts' in columns and 'failed_login_attempts' not in columns:
+                    print("[MIGRATION] Renaming column 'failed_attempts' to 'failed_login_attempts'...")
+                    db.session.execute(db.text("ALTER TABLE user_attempts RENAME COLUMN failed_attempts TO failed_login_attempts"))
+                    db.session.commit()
+                    print("[MIGRATION] Column renamed to 'failed_login_attempts' successfully.")
+
+                # Re-fetch columns
+                columns = [c['name'] for c in inspector.get_columns('user_attempts')]
+
+                # 3. Add missing columns
+                if 'otp_request_attempts' not in columns:
+                    print("[MIGRATION] Adding column 'otp_request_attempts' to user_attempts...")
+                    db.session.execute(db.text("ALTER TABLE user_attempts ADD COLUMN otp_request_attempts INTEGER DEFAULT 0"))
+                    db.session.commit()
+
+                if 'first_otp_request_at' not in columns:
+                    print("[MIGRATION] Adding column 'first_otp_request_at' to user_attempts...")
+                    col_type = "TIMESTAMP" if dialect_name in ('postgresql', 'sqlite') else "DATETIME"
+                    db.session.execute(db.text(f"ALTER TABLE user_attempts ADD COLUMN first_otp_request_at {col_type} DEFAULT NULL"))
+                    db.session.commit()
+
+                if 'last_otp_request_at' not in columns:
+                    print("[MIGRATION] Adding column 'last_otp_request_at' to user_attempts...")
+                    col_type = "TIMESTAMP" if dialect_name in ('postgresql', 'sqlite') else "DATETIME"
+                    db.session.execute(db.text(f"ALTER TABLE user_attempts ADD COLUMN last_otp_request_at {col_type} DEFAULT NULL"))
+                    db.session.commit()
+
+                if 'reason' not in columns:
+                    print("[MIGRATION] Adding column 'reason' to user_attempts...")
+                    db.session.execute(db.text("ALTER TABLE user_attempts ADD COLUMN reason VARCHAR(50) DEFAULT NULL"))
+                    db.session.commit()
+        except Exception as mig_err:
+            db.session.rollback()
+            print("[MIGRATION WARNING] user_attempts table migration notice:", mig_err)
+
         # Import all models to ensure they are registered with SQLAlchemy metadata
         from backend.models.product import ProductModel, ProductImageModel, StockHistoryModel, ProductAuditLogModel, ProductVariantModel, BuyRequestModel
         from backend.models.user import UserModel, DeliveryAddress, UserStatusAuditLog
@@ -126,8 +182,10 @@ def run_updates():
         from backend.models.banner import BannerModel
         from backend.models.notification import NotificationModel
         from backend.models.settings import SiteSettingModel
+        from backend.models.user_attempt import UserAttempt
+        from backend.models.user_login_attempt import UserLoginAttempt
 
-        # Create all tables (will create product_audit_logs, user_status_audit_logs, site_settings)
+        # Create all tables (will create product_audit_logs, user_status_audit_logs, site_settings, user_attempts)
         db.create_all()
         print("db.create_all() executed successfully.")
 

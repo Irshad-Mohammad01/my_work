@@ -5,7 +5,7 @@ import {
   BarChart3, Plus, Edit2, Trash2, CheckCircle2, ShieldAlert, User,
   ArrowUpRight, Users, ShoppingBag, Package, MessageSquare, AlertCircle, Upload, Eye, X,
   AlertTriangle, Check, RefreshCw, Calendar, DollarSign, Clock, MapPin, Lock, Unlock, Shield, Search, Image,
-  Settings, Globe, Link as LinkIcon, Sparkles, Truck, ExternalLink
+  Settings, Globe, Link as LinkIcon, Sparkles, Truck, ExternalLink, ArrowUpDown, ArrowUp
 } from 'lucide-react';
 import { AuthContext, API_BASE_URL, SERVER_BASE_URL } from '../context/AuthContext';
 import { HighDemandButton } from '../components/admin/HighDemandButton';
@@ -13,6 +13,8 @@ import { MaintenanceButton } from '../components/admin/MaintenanceButton';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory } from '../utils/categoryTranslations';
 import { TrackingInfoModal } from '../components/admin/TrackingInfoModal';
+import { OrderItemsModal } from '../components/admin/OrderItemsModal';
+import { sortUsersByStatus } from '../utils/statusSorter';
 import { CategoryBannerManagement } from '../components/admin/CategoryBannerManagement';
 import { CollectionBannerManagement } from '../components/admin/CollectionBannerManagement';
 
@@ -226,6 +228,7 @@ export const AdminControl = () => {
   const [statusReason, setStatusReason] = useState('');
   const [viewingOrderItems, setViewingOrderItems] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userStatusSortMode, setUserStatusSortMode] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1106,10 +1109,13 @@ export const AdminControl = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/users`);
-      setUsers(res.data);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/admin/users-complete`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setUsers(res.data.users || res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch users:", err);
     }
   };
 
@@ -1176,25 +1182,54 @@ export const AdminControl = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.put(`${API_BASE_URL}/admin/users/${statusModalUser.id || statusModalUser._id}/status`, {
-        is_blocked: statusModalNewBlockedState,
+      const targetId = statusModalUser.id || statusModalUser._id;
+      const newBlockedState = statusModalNewBlockedState;
+
+      const res = await axios.put(`${API_BASE_URL}/admin/users/${targetId}/status`, {
+        is_blocked: newBlockedState,
         reason: statusReason
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      alert(res.data.message || "User status successfully updated.");
+      const updatedStatus = res.data.status || res.data.account_status || (newBlockedState ? "Blocked" : "Active");
+
+      // 1. Immediately update users list in state for instant UI reflection
+      setUsers(prevUsers => (prevUsers || []).map(u => {
+        if (String(u.id || u._id) === String(targetId)) {
+          return {
+            ...u,
+            is_blocked: newBlockedState,
+            status: updatedStatus
+          };
+        }
+        return u;
+      }));
+
+      // 2. Immediately update selectedUserDetails state if currently selected
+      if (selectedUserDetails && String(selectedUserDetails.id || selectedUserDetails._id) === String(targetId)) {
+        setSelectedUserDetails(prev => prev ? ({
+          ...prev,
+          is_blocked: newBlockedState,
+          status: updatedStatus
+        }) : null);
+      }
+
+      // 3. Close status modal and clear form input immediately
       setStatusModalOpen(false);
       setStatusReason('');
 
-      const currentId = selectedUserDetails?.id || selectedUserDetails?._id;
-      const targetId = statusModalUser.id || statusModalUser._id;
-      if (selectedUserDetails && String(currentId) === String(targetId)) {
+      // 4. Notify admin of successful status update
+      alert(res.data.message || "User status successfully updated.");
+
+      // 5. Re-fetch user details and users list from server to sync all data & audit logs
+      if (targetId) {
         fetchUserDetails(targetId);
       }
-
       fetchUsers();
-      fetchAuditLogs();
+      if (typeof fetchAuditLogs === 'function') {
+        fetchAuditLogs();
+      }
     } catch (err) {
       console.error("Failed to update user status:", err);
       alert(err.response?.data?.message || "Failed to update user status.");
@@ -1237,7 +1272,7 @@ export const AdminControl = () => {
           {/* Owner Configuration (Settings form) */}
           <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
-              <Settings className="h-4 w-4 text-emerald-500" />
+              <Settings className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
               <span>Owner & Email Configuration</span>
             </h4>
 
@@ -1307,7 +1342,7 @@ export const AdminControl = () => {
           <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
             <div>
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-emerald-500" />
+                <Calendar className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                 <span>Manual Trigger & Testing</span>
               </h4>
               <p className="text-xs text-slate-400 mb-6">
@@ -1379,7 +1414,7 @@ export const AdminControl = () => {
         <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 bg-white dark:bg-slate-900/50">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-emerald-500" />
+              <Clock className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
               <span>Report Execution & Logging History</span>
             </h4>
             <button
@@ -1454,13 +1489,15 @@ export const AdminControl = () => {
       );
     });
 
+    const displayUsers = sortUsersByStatus(filteredUsers, userStatusSortMode);
+
     return (
       <div className="space-y-6">
         {/* Search and stats count row */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-500">
-              <Users className="h-5 w-5" />
+              <Users className="h-5 w-5 dark:text-[#C084FC]" />
             </div>
             <div>
               <h4 className="text-sm font-extrabold text-slate-800 dark:text-white">Customer Management Panel</h4>
@@ -1481,68 +1518,92 @@ export const AdminControl = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Left Column: Users Table */}
-          <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[700px]">
+          <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-sm overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[540px] sm:min-w-full table-auto">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 GFM-table-header uppercase font-bold">
-                  <th className="py-3 px-2">User ID</th>
-                  <th className="py-3 px-2">Full Name</th>
-                  <th className="py-3 px-2">Email</th>
-                  <th className="py-3 px-2">Mobile</th>
-                  <th className="py-3 px-2">Address</th>
-                  <th className="py-3 px-2">Registered</th>
-                  <th className="py-3 px-2">Last Login</th>
-                  <th className="py-3 px-2 text-right">Status</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 GFM-table-header uppercase font-bold text-[11px] sm:text-xs">
+                  <th className="py-3 px-2 sm:px-3 font-bold text-slate-500 dark:text-slate-400 min-w-[110px] max-w-[160px]">NAME</th>
+                  <th className="py-3 px-2 sm:px-3 font-bold text-slate-500 dark:text-slate-400 min-w-[130px] max-w-[200px]">EMAIL</th>
+                  <th className="py-3 px-2 sm:px-3 font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap w-auto">MOBILE</th>
+                  <th className="py-3 px-2 sm:px-3 font-bold text-slate-500 dark:text-slate-400 min-w-[120px]">ADDRESS</th>
+                  <th className="py-3 px-2 sm:px-3 text-right font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setUserStatusSortMode(prev => (prev + 1) % 4)}
+                      title={
+                        userStatusSortMode === 1
+                          ? "Status Order: Active → Inactive → Blocked (Click for Inactive → Active → Blocked)"
+                          : userStatusSortMode === 2
+                          ? "Status Order: Inactive → Active → Blocked (Click for Blocked → Active → Inactive)"
+                          : userStatusSortMode === 3
+                          ? "Status Order: Blocked → Active → Inactive (Click to reset default order)"
+                          : "Status Order: Default / Unsorted (Click to sort Active → Inactive → Blocked)"
+                      }
+                      aria-label={
+                        userStatusSortMode === 1
+                          ? "Status sort: Active first. Click for Inactive first."
+                          : userStatusSortMode === 2
+                          ? "Status sort: Inactive first. Click for Blocked first."
+                          : userStatusSortMode === 3
+                          ? "Status sort: Blocked first. Click to reset."
+                          : "Status sort: default order. Click to sort Active first."
+                      }
+                      className="inline-flex items-center gap-1.5 ml-auto font-bold cursor-pointer hover:text-slate-800 dark:hover:text-slate-100 transition-colors select-none text-right group"
+                    >
+                      <span>STATUS</span>
+                      {userStatusSortMode === 0 ? (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 transition-colors shrink-0" />
+                      )}
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
-                {filteredUsers.length === 0 ? (
+                {displayUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-8 text-center text-slate-450 italic">
+                    <td colSpan="5" className="py-8 text-center text-slate-450 italic">
                       No users found matching your search.
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map(u => (
+                  displayUsers.map(u => (
                     <tr
                       key={u.id || u._id}
                       onClick={() => fetchUserDetails(u.id || u._id)}
-                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-850/40 cursor-pointer transition-colors ${String(selectedUserDetails?.id || selectedUserDetails?._id) === String(u.id || u._id)
+                      className={`hover:bg-slate-50/70 dark:hover:bg-transparent cursor-pointer transition-colors ${String(selectedUserDetails?.id || selectedUserDetails?._id) === String(u.id || u._id)
                           ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-l-4 border-l-emerald-500'
                           : ''
                         }`}
                     >
-                      <td className="py-3.5 px-2 font-mono text-[10px] text-slate-450">
-                        {(u.id || u._id || '').toString().slice(-6).toUpperCase()}
+                      <td className="py-3.5 px-2 sm:px-3 font-bold text-slate-800 dark:text-slate-100 min-w-[110px] max-w-[160px]">
+                        <div className="truncate" title={u.name || "N/A"}>
+                          {u.name || "N/A"}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 font-normal truncate" title={`ID: ${u.id || u._id}`}>
+                          ID: {(u.id || u._id || '').toString().slice(-6).toUpperCase()}
+                        </div>
                       </td>
-                      <td className="py-3.5 px-2 font-bold text-slate-800 dark:text-slate-100">
-                        {u.name || "N/A"}
+                      <td className="py-3.5 px-2 sm:px-3 text-slate-550 dark:text-slate-355 min-w-[130px] max-w-[200px]">
+                        <div className="truncate font-medium" title={u.email}>
+                          {u.email}
+                        </div>
                       </td>
-                      <td className="py-3.5 px-2 text-slate-550 dark:text-slate-350">
-                        {u.email}
-                      </td>
-                      <td className="py-3.5 px-2 font-mono text-slate-550 dark:text-slate-350">
+                      <td className="py-3.5 px-2 sm:px-3 font-mono text-slate-555 dark:text-slate-350 whitespace-nowrap w-auto max-w-[130px] truncate" title={u.mobile || "N/A"}>
                         {u.mobile || "N/A"}
                       </td>
-                      <td className="py-3.5 px-2 text-slate-400 max-w-[120px] truncate" title={formatAddress(u.address)}>
+                      <td className="py-3.5 px-2 sm:px-3 text-slate-400 max-w-[140px] sm:max-w-[220px] truncate" title={formatAddress(u.address)}>
                         {formatAddress(u.address)}
                       </td>
-                      <td className="py-3.5 px-2 text-slate-400 admin-datetime-text">
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : "N/A"}
-                      </td>
-                      <td className="py-3.5 px-2 text-slate-400 admin-datetime-text">
-                        {u.last_login ? new Date(u.last_login).toLocaleDateString() : "N/A"}
-                      </td>
-                      <td className="py-3.5 px-2 text-right">
-                        <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-semibold border shadow-sm ${(u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'active'
-                            ? 'status-badge-active'
+                      <td className="py-3.5 px-2 sm:px-3 text-right whitespace-nowrap w-auto">
+                        <span className={`px-[12px] py-[4px] rounded-full text-[10px] font-bold border shadow-sm ${(u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'active'
+                            ? 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0] dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60'
                             : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'inactive'
-                              ? 'bg-[#6B7280] text-[#FFFFFF] border-[#4B5563]'
-                              : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'suspended'
-                                ? 'bg-[#EF4444] text-[#FFFFFF] border-[#DC2626]'
-                                : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'pending verification'
-                                  ? 'bg-[#F59E0B] text-[#FFFFFF] border-[#D97706]'
-                                  : 'bg-[#B91C1C] text-[#FFFFFF] border-[#991B1B]'
+                              ? 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/60'
+                              : (u.status || (u.is_blocked ? "Blocked" : "Active")).toLowerCase() === 'pending verification'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60'
+                                : 'bg-[#FEE2E2] text-[#991B1B] border-[#FCA5A5] dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800/60'
                           }`}>
                           {u.status || (u.is_blocked ? "Blocked" : "Active")}
                         </span>
@@ -1626,7 +1687,7 @@ export const AdminControl = () => {
                 {/* Address */}
                 <div className="bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-1.5">
                   <span className="text-[10px] text-slate-400 font-bold block">Delivery Address</span>
-                  <div className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-350">
+                  <div className="flex items-start gap-2 text-xs text-slate-700 dark:text-[#F5F5F5]">
                     <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
                     <span>{formatAddress(selectedUserDetails.address)}</span>
                   </div>
@@ -1724,7 +1785,7 @@ export const AdminControl = () => {
                             </div>
                           </div>
                           <button
-                            onClick={() => setViewingOrderItems(order.items)}
+                            onClick={() => setViewingOrderItems(order)}
                             className="w-full py-1.5 px-3 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all font-bold text-[10px] flex items-center justify-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-300"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -1742,7 +1803,7 @@ export const AdminControl = () => {
             ) : (
               <div className="flex flex-col items-center justify-center text-center py-12 px-4 h-[300px]">
                 <div className="bg-emerald-500/10 p-4 rounded-2xl text-emerald-500 mb-4 animate-bounce">
-                  <Users className="h-8 w-8" />
+                  <Users className="h-8 w-8 dark:text-[#C084FC]" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">No User Selected</h4>
                 <p className="text-xs text-slate-450 max-w-[200px]">
@@ -2133,7 +2194,7 @@ export const AdminControl = () => {
             <button
               type="button"
               onClick={addAdditionalSlot}
-              className="text-[10px] font-black text-emerald-500 hover:text-emerald-605 flex items-center gap-1"
+              className="text-[10px] font-black text-emerald-500 dark:text-[#C084FC] hover:text-emerald-600 dark:hover:text-[#D8B4FE] flex items-center gap-1"
             >
               <Plus className="h-3 w-3" />
               <span>Add Additional Image</span>
@@ -2425,8 +2486,8 @@ export const AdminControl = () => {
     if (homepageLoading || adminCategoriesLoading) {
       return (
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl">
-          <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin" />
-          <p className="text-slate-500 mt-4 text-xs font-bold uppercase tracking-wider">Loading Homepage Settings...</p>
+          <RefreshCw className="h-8 w-8 text-[#D4A75F] animate-spin" />
+          <p className="text-slate-500 dark:text-slate-400 mt-4 text-xs font-bold uppercase tracking-wider">Loading...</p>
         </div>
       );
     }
@@ -2691,7 +2752,7 @@ export const AdminControl = () => {
                 }));
                 setActiveOwnerIdx(safeOwnersList.length);
               }}
-              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 dark:bg-[#7E22CE]/15 dark:hover:bg-[#7E22CE]/30 dark:text-[#D8B4FE] dark:hover:text-[#E9D5FF] dark:border-[#A855F7]/40 dark:hover:border-[#C084FC]/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add Owner</span>
@@ -3056,7 +3117,7 @@ export const AdminControl = () => {
                   luxury_gallery_items: [...safeGalleryItems, newCard]
                 }));
               }}
-              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 dark:bg-[#7E22CE]/15 dark:hover:bg-[#7E22CE]/30 dark:text-[#D8B4FE] dark:hover:text-[#E9D5FF] dark:border-[#A855F7]/40 dark:hover:border-[#C084FC]/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add Card</span>
@@ -3242,8 +3303,8 @@ export const AdminControl = () => {
         {/* Loading Spinner */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-            <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Aggregating database statistics...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4A75F]"></div>
+            <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading...</p>
           </div>
         ) : (
           <>
@@ -3256,7 +3317,7 @@ export const AdminControl = () => {
                   <span className="text-2xl font-black block mt-1 price-amount">₹{formatPrice(stats.total_sales ?? 0)}</span>
                 </div>
                 <div className="bg-emerald-500/10 p-3 rounded-xl text-emerald-500">
-                  <BarChart3 className="h-6 w-6" />
+                  <BarChart3 className="h-6 w-6 dark:text-[#C084FC]" />
                 </div>
               </div>
 
@@ -3368,8 +3429,8 @@ export const AdminControl = () => {
                 {/* Upper row: Extra Insight Cards & Refresh */}
                 <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-500">
-                      <BarChart3 className="h-5 w-5" />
+                    <div className="bg-emerald-500/10 dark:bg-[#A855F7]/12 p-2.5 rounded-xl text-emerald-500 dark:text-[#C084FC]">
+                      <BarChart3 className="h-5 w-5 dark:text-[#C084FC]" />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">eCommerce Health & Status</h4>
@@ -3390,7 +3451,7 @@ export const AdminControl = () => {
                   {/* Category Value Distribution SVG Bar Chart */}
                   <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-                      <Package className="h-4 w-4 text-emerald-500" />
+                      <Package className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                       <span>Category Stock Value Distribution (Price × Stock)</span>
                     </h3>
 
@@ -3452,7 +3513,7 @@ export const AdminControl = () => {
                   {/* Order Status Breakdown Chart */}
                   <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4 text-emerald-500" />
+                      <ShoppingBag className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                       <span>Order Fulfillment Status Breakdown</span>
                     </h3>
 
@@ -3524,10 +3585,10 @@ export const AdminControl = () => {
                     {/* Admin Analytics Summary Cards */}
                     <div>
                       <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-emerald-500" />
+                        <BarChart3 className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                         <span>Admin Analytics Summary Cards</span>
                       </h2>
-                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 items-stretch">
                         {[
                           {
                             label: "Total Registered",
@@ -3546,8 +3607,9 @@ export const AdminControl = () => {
                           {
                             label: "Active Customers",
                             val: overviewAnalytics.summary_cards?.active_customers ?? 0,
-                            color: "text-emerald-500",
-                            bgColor: "bg-emerald-500/10",
+                            color: "text-emerald-500 dark:text-[#E9D5FF]",
+                            iconColor: "text-[#16A34A] dark:text-[#86EFAC]",
+                            bgColor: "bg-[#DCFCE7] dark:bg-[#163B2A]",
                             icon: CheckCircle2
                           },
                           {
@@ -3570,16 +3632,20 @@ export const AdminControl = () => {
                           return (
                             <div
                               key={card.label}
-                              className={`bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 sm:p-5 rounded-2xl shadow-sm flex items-center justify-between gap-3 overflow-hidden ${
+                              className={`bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-3 sm:p-5 rounded-2xl shadow-sm flex items-center justify-between gap-2.5 sm:gap-3 overflow-hidden min-w-0 h-full ${
                                 isTotalRevenue ? "col-span-2 sm:col-span-1 lg:col-span-1" : "col-span-1"
                               }`}
                             >
                               <div className="min-w-0 flex-1">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">{card.label}</span>
-                                <span className={`text-lg sm:text-xl font-black mt-0.5 block truncate ${card.color} ${isTotalRevenue ? "price-amount" : ""}`}>{card.val}</span>
+                                <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight sm:tracking-wider block truncate leading-tight">
+                                  {card.label}
+                                </span>
+                                <span className={`text-[clamp(16px,4vw,20px)] sm:text-xl font-black mt-0.5 block truncate leading-none ${card.color} ${isTotalRevenue ? "price-amount" : ""}`}>
+                                  {card.val}
+                                </span>
                               </div>
-                              <div className={`${card.bgColor} p-2.5 rounded-xl ${card.color} flex-shrink-0 flex items-center justify-center`}>
-                                <IconComponent className="h-5 w-5" />
+                              <div className={`${card.bgColor} p-2 sm:p-2.5 rounded-xl ${card.iconColor || card.color} flex-shrink-0 shrink-0 flex items-center justify-center`}>
+                                <IconComponent className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                               </div>
                             </div>
                           );
@@ -3591,7 +3657,7 @@ export const AdminControl = () => {
                     <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm mt-8">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-emerald-500" />
+                          <Clock className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                           <span>Audit Logs</span>
                           <span className="audit-logs-count-badge">
                             {generalAuditLogs.length} total
@@ -3607,7 +3673,7 @@ export const AdminControl = () => {
                               placeholder="Search logs..."
                               value={auditSearch}
                               onChange={(e) => setAuditSearch(e.target.value)}
-                              className="pl-9 pr-4 py-2 w-full text-sm bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
+                              className="pl-9 pr-4 py-2 w-full text-sm bg-slate-50 dark:bg-slate-955/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
                             />
                           </div>
 
@@ -3615,7 +3681,7 @@ export const AdminControl = () => {
                           <select
                             value={auditActionType}
                             onChange={(e) => setAuditActionType(e.target.value)}
-                            className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
+                            className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
                           >
                             <option value="">All Action Types</option>
                             {ACTION_TYPES.map(type => (
@@ -3627,7 +3693,7 @@ export const AdminControl = () => {
                           <select
                             value={auditStatus}
                             onChange={(e) => setAuditStatus(e.target.value)}
-                            className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
+                            className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 dark:text-slate-200"
                           >
                             <option value="">All Statuses</option>
                             <option value="Success">Success</option>
@@ -3664,17 +3730,17 @@ export const AdminControl = () => {
                                   let actionBadgeColor = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
                                   const type = log.action_type || "";
                                   if (type.includes("Added") || type.includes("Unblocked")) {
-                                    actionBadgeColor = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-450";
+                                    actionBadgeColor = "bg-emerald-50 text-emerald-600 dark:bg-emerald-955/30 dark:text-emerald-450";
                                   } else if (type.includes("Deleted") || type.includes("Blocked") || type.includes("Cancelled")) {
-                                    actionBadgeColor = "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-455";
+                                    actionBadgeColor = "bg-rose-50 text-rose-600 dark:bg-rose-955/30 dark:text-rose-455";
                                   } else if (type.includes("Updated") || type.includes("Changed") || type.includes("Status")) {
-                                    actionBadgeColor = "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-455";
+                                    actionBadgeColor = "bg-amber-50 text-amber-600 dark:bg-amber-955/30 dark:text-amber-455";
                                   } else if (type.includes("Login") || type.includes("Logout")) {
-                                    actionBadgeColor = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-450";
+                                    actionBadgeColor = "bg-blue-50 text-blue-600 dark:bg-blue-955/30 dark:text-blue-450";
                                   }
 
                                   return (
-                                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-955/20 transition-all border-b border-slate-100 dark:border-slate-800/50">
+                                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-transparent transition-all border-b border-slate-100 dark:border-slate-800/50">
                                       <td className="py-3.5 pr-4 text-slate-500 admin-timestamp-text whitespace-nowrap">
                                         {log.created_at}
                                       </td>
@@ -3694,8 +3760,8 @@ export const AdminControl = () => {
                                       </td>
                                       <td className="py-3.5 pl-4">
                                         <span className={log.status === 'Success'
-                                          ? 'status-badge-success'
-                                          : 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-455'
+                                          ? 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-[#22C55E] text-[#FFFFFF] border border-[#16A34A] shadow-sm'
+                                          : 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-955/40 dark:text-rose-455'
                                         }>
                                           {log.status}
                                         </span>
@@ -3766,7 +3832,7 @@ export const AdminControl = () => {
                         getLowStockProducts().map(p => (
                           <div key={p.id} className="p-3 border border-slate-100 dark:border-slate-850 hover:border-slate-200 dark:hover:border-slate-750 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl flex items-center justify-between transition-all">
                             <div className="max-w-[70%]">
-                              <span className="text-xs font-bold text-slate-800 dark:text-slate-250 block truncate">{p.name}</span>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate">{p.name}</span>
                               <span className="text-[10px] font-bold text-slate-400 block mt-0.5">{p.category} • <span className="price-amount">₹{formatPrice(p.price)}</span></span>
                             </div>
                             <div className="text-right">
@@ -3780,7 +3846,7 @@ export const AdminControl = () => {
                                   setEditProductImages(initEditImages(p));
                                   setIsEditImagesOpen(false);
                                 }}
-                                className="block text-[10px] font-black text-emerald-500 hover:text-emerald-600 mt-2 hover:underline"
+                                className="block text-[10px] font-black text-emerald-500 hover:text-emerald-600 dark:text-[#C084FC] dark:hover:text-[#E9D5FF] mt-2 hover:underline"
                               >
                                 Restock Item
                               </button>
@@ -4076,7 +4142,7 @@ export const AdminControl = () => {
                         };
 
                         return (
-                          <tr key={o._id} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/30 transition-colors align-middle">
+                          <tr key={o._id} className="hover:bg-slate-50/70 dark:hover:bg-transparent transition-colors align-middle">
                             <td className="py-3.5 px-4 font-mono font-bold text-slate-800 dark:text-slate-100 text-center whitespace-nowrap">
                               {o.order_id}
                             </td>
@@ -4142,7 +4208,7 @@ export const AdminControl = () => {
             {activeTab === 'support' && (
               <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                 <h3 className="text-base font-bold mb-4 flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  <MessageSquare className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                   <span>Customer Support Messages ({messages.length})</span>
                 </h3>
 
@@ -4179,7 +4245,7 @@ export const AdminControl = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-4 mb-6 gap-4">
                   <div>
                     <h3 className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-white">
-                      <Settings className="h-5 w-5 text-emerald-500" />
+                      <Settings className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                       <span>Site Configuration</span>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">Manage carousel banners, FAQs, and support links shown across the website.</p>
@@ -4822,7 +4888,7 @@ export const AdminControl = () => {
                       className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-250 dark:border-slate-800 font-bold hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all text-xs"
                     >
                       <span className="flex items-center gap-2">
-                        <Image className="h-4 w-4 text-emerald-500" />
+                        <Image className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                         <span>Manage Product Images</span>
                       </span>
                       <span className="text-[10px] text-slate-400 font-semibold">
@@ -4865,7 +4931,7 @@ export const AdminControl = () => {
               {/* Sticky Header */}
               <div className="flex justify-between items-center px-6 py-4 border-b border-slate-150 dark:border-slate-850">
                 <div className="flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-emerald-500" />
+                  <Plus className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                   <h3 className="text-sm font-extrabold text-slate-850 dark:text-slate-100">Add New Product</h3>
                 </div>
                 <div className="flex items-center gap-4">
@@ -5108,7 +5174,7 @@ export const AdminControl = () => {
                       className="w-full flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-250 dark:border-slate-800 font-bold hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-all text-xs"
                     >
                       <span className="flex items-center gap-2">
-                        <Image className="h-4 w-4 text-emerald-500" />
+                        <Image className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                         <span>Manage Product Images</span>
                       </span>
                       <span className="text-[10px] text-slate-400 font-semibold">
@@ -5152,7 +5218,7 @@ export const AdminControl = () => {
               {/* Modal Header */}
               <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <ShoppingBag className="h-5 w-5 text-emerald-500" />
+                  <ShoppingBag className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
                   <span>Order Details - #{selectedOrder.order_id}</span>
                 </h3>
                 <button
@@ -5267,7 +5333,7 @@ export const AdminControl = () => {
                 </div>
 
                 {/* Shipment Information Card */}
-                <div className="bg-slate-50/70 dark:bg-slate-955 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-3 text-xs">
+                <div className="bg-slate-50/70 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-3 text-xs">
                   <div className="flex justify-between items-center border-b border-slate-200/60 dark:border-slate-800 pb-2">
                     <h4 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <Truck className="h-4 w-4 text-[#5B1E7A] dark:text-[#D4A75F]" />
@@ -5319,9 +5385,9 @@ export const AdminControl = () => {
                 </div>
 
                 {/* Fulfillment & Live Order Tracking updates */}
-                <div className="bg-slate-50/50 dark:bg-slate-955/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
+                <div className="bg-slate-50/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4 text-xs">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-850">
-                    <RefreshCw className="h-4 w-4 text-emerald-500 animate-spin-slow" />
+                    <RefreshCw className="h-4 w-4 text-emerald-500 dark:text-[#C084FC] animate-spin-slow" />
                     <span>Update Shipment & Tracking Timeline</span>
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px]">
@@ -5673,7 +5739,7 @@ export const AdminControl = () => {
                 <X className="h-5 w-5" />
               </button>
               <h3 className="text-base font-bold mb-2 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-emerald-500" />
+                <BarChart3 className="h-5 w-5 text-emerald-500 dark:text-[#D4A75F]" />
                 <span>Product Sales & Performance Analytics</span>
               </h3>
               <p className="text-xs text-slate-400 mb-4">{selectedAnalyticsProduct.name}</p>
@@ -5879,7 +5945,7 @@ export const AdminControl = () => {
                 <X className="h-5 w-5" />
               </button>
               <h3 className="text-sm font-bold text-slate-850 dark:text-slate-100 flex items-center gap-2 mb-4">
-                <Image className="h-4 w-4 text-emerald-500" />
+                <Image className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                 <span>{editingBannerId ? 'Edit Banner Slide' : 'Add New Banner Slide'}</span>
               </h3>
 
@@ -6386,6 +6452,14 @@ export const AdminControl = () => {
           initialTrackingUrl={trackingModalConfig.initialUrl}
           initialTrackingId={trackingModalConfig.initialId}
           isEditing={trackingModalConfig.isEditing}
+        />
+
+        {/* Purchased Order Items Modal */}
+        <OrderItemsModal
+          isOpen={!!viewingOrderItems}
+          onClose={() => setViewingOrderItems(null)}
+          orderId={typeof viewingOrderItems === 'string' ? viewingOrderItems : (viewingOrderItems?.order_id || viewingOrderItems?.id)}
+          initialOrder={typeof viewingOrderItems === 'object' ? viewingOrderItems : null}
         />
 
         {/* Toast Alert */}

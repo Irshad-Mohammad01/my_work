@@ -11,7 +11,7 @@ import { AuthContext, API_BASE_URL } from '../context/AuthContext';
 import { LuxuryImage } from '../components/LuxuryImage';
 import { formatPrice } from '../utils/priceFormatter';
 import { translateCategory, translateUiLabel } from '../utils/categoryTranslations';
-import { GoldCalculator } from '../components/GoldCalculator';
+import { sortUsersByStatus } from '../utils/statusSorter';
 import { TrustShowcase } from '../components/TrustShowcase';
 import { LuxuryGallery } from '../components/LuxuryGallery';
 import { OccasionGallery } from '../components/OccasionGallery';
@@ -986,6 +986,7 @@ export const Home = () => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userStatusSortMode, setUserStatusSortMode] = useState(0);
   const [userFilter, setUserFilter] = useState('all');
   const [userPage, setUserPage] = useState(1);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
@@ -1176,10 +1177,14 @@ export const Home = () => {
     return true;
   });
 
+  const sortedUsers = useMemo(() => {
+    return sortUsersByStatus(filteredUsers, userStatusSortMode);
+  }, [filteredUsers, userStatusSortMode]);
+
   const indexOfLastItem = userPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const currentUsers = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
 
   const renderAddress = (addr) => {
     if (!addr) return 'N/A';
@@ -1218,8 +1223,8 @@ export const Home = () => {
     return (
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-          <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading analytics...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4A75F]"></div>
+          <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading...</p>
         </div>
       }>
         <HomeAdminAnalytics
@@ -1244,8 +1249,8 @@ export const Home = () => {
     return (
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-          <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading user data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4A75F]"></div>
+          <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading...</p>
         </div>
       }>
         <HomeUserManagement
@@ -1264,6 +1269,8 @@ export const Home = () => {
           filteredUsers={filteredUsers}
           totalPages={totalPages}
           userPage={userPage}
+          userStatusSortMode={userStatusSortMode}
+          setUserStatusSortMode={setUserStatusSortMode}
         />
       </Suspense>
     );
@@ -1933,8 +1940,8 @@ export const Home = () => {
         {isAdmin && activeTab === 'users' && (
           usersLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-              <p className="text-slate-550 dark:text-slate-400 mt-4 text-sm font-semibold">Loading customer database...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4A75F]"></div>
+              <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading...</p>
             </div>
           ) : usersError ? (
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-xl mx-auto my-12">
@@ -1958,8 +1965,8 @@ export const Home = () => {
         {isAdmin && activeTab === 'analytics' && (
           usersLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-              <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading analytics...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4A75F]"></div>
+              <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm font-semibold">Loading...</p>
             </div>
           ) : usersError ? (
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-center max-w-xl mx-auto my-12">
@@ -1992,7 +1999,6 @@ export const Home = () => {
             />
           )}
           <TrustShowcase />
-          <GoldCalculator />
           <VideoShowcase url={siteSettings.video_showcase_url} />
           {parseJsonSafe(siteSettings.owners_list, [
             {
@@ -2075,7 +2081,7 @@ export const Home = () => {
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
               <div className="flex items-center gap-2.5">
-                <div className="bg-emerald-500/10 p-2 rounded-xl text-emerald-500">
+                <div className="bg-emerald-500/10 dark:bg-purple-900/40 p-2 rounded-xl text-emerald-500 dark:text-[#E9D5FF]">
                   <Plus className="h-5 w-5" />
                 </div>
                 <div>
@@ -2295,7 +2301,7 @@ export const Home = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500 font-black text-base">
+                <div className="w-10 h-10 bg-emerald-500/10 dark:bg-purple-900/40 rounded-xl flex items-center justify-center text-emerald-500 dark:text-[#D8B4FE] font-black text-base">
                   {selectedUserForDetails.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -2321,7 +2327,7 @@ export const Home = () => {
               {/* User Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 flex items-center gap-3">
-                  <div className="bg-blue-500/10 p-2.5 rounded-xl text-blue-500">
+                  <div className="bg-blue-500/10 dark:bg-purple-900/40 p-2.5 rounded-xl text-blue-500 dark:text-[#C084FC]">
                     <ShoppingBag className="h-5 w-5" />
                   </div>
                   <div>
@@ -2333,7 +2339,7 @@ export const Home = () => {
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 flex items-center gap-3">
-                  <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-500">
+                  <div className="bg-emerald-500/10 dark:bg-purple-900/40 p-2.5 rounded-xl text-emerald-500 dark:text-[#C084FC]">
                     <DollarSign className="h-5 w-5" />
                   </div>
                   <div>
@@ -2345,7 +2351,7 @@ export const Home = () => {
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 flex items-center gap-3">
-                  <div className="bg-indigo-500/10 p-2.5 rounded-xl text-indigo-500">
+                  <div className="bg-indigo-500/10 dark:bg-purple-900/40 p-2.5 rounded-xl text-indigo-500 dark:text-[#C084FC]">
                     <Calendar className="h-5 w-5" />
                   </div>
                   <div>
@@ -2360,7 +2366,7 @@ export const Home = () => {
               {/* Address Card */}
               <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-3">
                 <h4 className="text-xs font-bold text-slate-805 dark:text-slate-200 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-emerald-500" />
+                  <MapPin className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                   <span>Delivery Address Details</span>
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
@@ -2388,7 +2394,7 @@ export const Home = () => {
               {/* Order History Table */}
               <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800 space-y-4">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <Clock className="h-4 w-4 text-emerald-500" />
+                  <Clock className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
                   <span>Complete Order History ({selectedUserForDetails.orders?.length || 0})</span>
                 </h4>
 

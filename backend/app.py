@@ -44,7 +44,6 @@ from backend.routes.banners import banners_bp
 from backend.routes.category_banners import category_banners_bp
 from backend.routes.collection_banners import collection_banners_bp
 from backend.routes.collections import collections_bp
-from backend.routes.gold_rate import gold_rate_bp
 from backend.routes.maintenance import maintenance_bp
 from backend.routes.high_demand import high_demand_bp
 from backend.routes.payments import payments_bp
@@ -150,7 +149,6 @@ app.register_blueprint(banners_bp, url_prefix='/api/banners')
 app.register_blueprint(category_banners_bp, url_prefix='/api/category-banners')
 app.register_blueprint(collection_banners_bp, url_prefix='/api/collection-banners')
 app.register_blueprint(collections_bp, url_prefix='/api/collections')
-app.register_blueprint(gold_rate_bp, url_prefix='/api/gold-rate')
 app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
 app.register_blueprint(high_demand_bp, url_prefix='/api/high-demand')
 
@@ -424,11 +422,6 @@ with app.app_context():
     except Exception as err:
         print("[APP] Scheduler will start after DB is ready:", err)
 
-    try:
-        from backend.utils.gold_rate_scheduler import start_gold_rate_scheduler
-        start_gold_rate_scheduler(app)
-    except Exception as err:
-        print("[APP] Gold rate scheduler error:", err)
 
     # API Route Discovery Logger: Print registered routes during startup
     print("\n" + "=" * 60)

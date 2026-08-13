@@ -25,8 +25,8 @@ export const AnalyticsTab = ({
       {/* Upper row: Extra Insight Cards & Refresh */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-500">
-            <BarChart3 className="h-5 w-5" />
+          <div className="bg-emerald-500/10 dark:bg-[#A855F7]/12 p-2.5 rounded-xl text-emerald-500 dark:text-[#C084FC]">
+            <BarChart3 className="h-5 w-5 dark:text-[#C084FC]" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">eCommerce Health & Status</h4>
@@ -47,7 +47,7 @@ export const AnalyticsTab = ({
         {/* Category Value Distribution SVG Bar Chart */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-            <Package className="h-4 w-4 text-emerald-500" />
+            <Package className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
             <span>Category Stock Value Distribution (Price × Stock)</span>
           </h3>
           
@@ -109,7 +109,7 @@ export const AnalyticsTab = ({
         {/* Order Status Breakdown Chart */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-emerald-500" />
+            <ShoppingBag className="h-4 w-4 text-emerald-500 dark:text-[#C084FC]" />
             <span>Order Fulfillment Status Breakdown</span>
           </h3>
           
@@ -218,7 +218,7 @@ export const AnalyticsTab = ({
               getLowStockProducts().map(p => (
                 <div key={p.id} className="p-3 border border-slate-100 dark:border-slate-850 hover:border-slate-200 dark:hover:border-slate-750 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl flex items-center justify-between transition-all">
                   <div className="max-w-[70%]">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-250 block truncate">{p.name}</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate">{p.name}</span>
                     <span className="text-[10px] font-bold text-slate-400 block mt-0.5">{p.category} • <span className="price-amount">₹{formatPrice(p.price)}</span></span>
                   </div>
                   <div className="text-right">
@@ -232,7 +232,7 @@ export const AnalyticsTab = ({
                         setEditProductImages(initEditImages(p));
                         setIsEditImagesOpen(false);
                       }}
-                      className="block text-[10px] font-black text-emerald-500 hover:text-emerald-600 mt-2 hover:underline"
+                      className="block text-[10px] font-black text-emerald-500 hover:text-emerald-600 dark:text-[#C084FC] dark:hover:text-[#E9D5FF] mt-2 hover:underline"
                     >
                       Restock Item
                     </button>

@@ -58,66 +58,64 @@ export const HomeAdminAnalytics = ({
         Admin Analytics Summary Cards
       </h2>
       {/* Analytics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-blue-500/10 p-3 rounded-xl text-blue-500">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Registered</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 items-stretch">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Total Registered</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.total_users ?? 0}
             </span>
           </div>
+          <div className="bg-blue-500/10 p-2 sm:p-3 rounded-xl text-blue-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-indigo-500/10 p-3 rounded-xl text-indigo-500">
-            <Calendar className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">New This Month</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">New This Month</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.new_users_this_month ?? 0}
             </span>
           </div>
+          <div className="bg-indigo-500/10 p-2 sm:p-3 rounded-xl text-indigo-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Calendar className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-emerald-500/10 p-3 rounded-xl text-emerald-500">
-            <Check className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Active Customers</span>
-            <span className="text-xl font-black text-slate-850 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Active Customers</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-850 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.active_users ?? 0}
             </span>
           </div>
+          <div className="bg-[#DCFCE7] dark:bg-[#163B2A] p-2 sm:p-3 rounded-xl flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Check className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-[#16A34A] dark:text-[#86EFAC]" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md flex items-center gap-4">
-          <div className="bg-rose-500/10 p-3 rounded-xl text-rose-500">
-            <Lock className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Blocked Users</span>
-            <span className="text-xl font-black text-slate-855 dark:text-white mt-0.5 block">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Blocked Users</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-855 dark:text-white mt-0.5 block truncate leading-none">
               {usersAnalytics?.blocked_users ?? 0}
             </span>
           </div>
+          <div className="bg-rose-500/10 p-2 sm:p-3 rounded-xl text-rose-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <Lock className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-3 overflow-hidden col-span-2 sm:col-span-2 lg:col-span-1">
-          <div className="min-w-0 flex-1 flex items-center gap-3">
-            <div className="bg-amber-500/10 p-2.5 rounded-xl text-amber-500 flex-shrink-0">
-              <DollarSign className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider truncate">Total Revenue</span>
-              <span className="text-lg sm:text-xl font-black text-slate-855 dark:text-white mt-0.5 block price-amount truncate">
-                ₹{formatPrice(usersAnalytics?.total_revenue ?? 0)}
-              </span>
-            </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between gap-2.5 sm:gap-4 min-w-0 h-full overflow-hidden col-span-2 sm:col-span-1 lg:col-span-1">
+          <div className="min-w-0 flex-1">
+            <span className="text-[clamp(9px,2.3vw,10px)] sm:text-[10px] text-slate-400 font-bold block uppercase tracking-tight sm:tracking-wider truncate leading-tight">Total Revenue</span>
+            <span className="text-[clamp(16px,4vw,20px)] sm:text-xl font-black text-slate-855 dark:text-white mt-0.5 block price-amount truncate leading-none">
+              ₹{formatPrice(usersAnalytics?.total_revenue ?? 0)}
+            </span>
+          </div>
+          <div className="bg-amber-500/10 p-2 sm:p-2.5 rounded-xl text-amber-500 flex-shrink-0 shrink-0 flex items-center justify-center">
+            <DollarSign className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
           </div>
         </div>
       </div>
@@ -126,7 +124,7 @@ export const HomeAdminAnalytics = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm mt-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-emerald-500" />
+            <Clock className="h-5 w-5 text-emerald-500 dark:text-[#C084FC]" />
             <span>Audit Logs</span>
             <span className="audit-logs-count-badge">
               {generalAuditLogs.length} total
@@ -211,7 +209,7 @@ export const HomeAdminAnalytics = ({
                     const { date, time } = formatDateTime(log.created_at);
 
                     return (
-                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-955/20 transition-all border-b border-slate-100 dark:border-slate-800/50">
+                      <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-transparent transition-all border-b border-slate-100 dark:border-slate-800/50">
                         <td className="py-3.5 pr-4 text-slate-500 admin-timestamp-text whitespace-nowrap">
                           {date} <span className="text-[10px] text-slate-400 font-normal">{time}</span>
                         </td>
@@ -231,7 +229,7 @@ export const HomeAdminAnalytics = ({
                         </td>
                         <td className="py-3.5 pl-4">
                           <span className={log.status === 'Success'
-                            ? 'status-badge-success'
+                            ? 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-[#22C55E] text-[#FFFFFF] border border-[#16A34A] shadow-sm'
                             : 'px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-955/40 dark:text-rose-455'
                           }>
                             {log.status}
