@@ -151,6 +151,13 @@ export const AdminControl = () => {
   const [homepageError, setHomepageError] = useState('');
   const [homepageSuccess, setHomepageSuccess] = useState('');
 
+  // Lookbook / Featured Luxury Gallery Cards state
+  const [lookbooks, setLookbooks] = useState([]);
+  const [loadingLookbooks, setLoadingLookbooks] = useState(false);
+  const [lookbookSuccess, setLookbookSuccess] = useState(null);
+  const [lookbookError, setLookbookError] = useState(null);
+  const [savingLookbooks, setSavingLookbooks] = useState(false);
+
   // Category config states
   const [adminCategories, setAdminCategories] = useState([]);
   const [adminCategoriesLoading, setAdminCategoriesLoading] = useState(true);
@@ -829,6 +836,169 @@ export const AdminControl = () => {
     }
   };
 
+  const fetchLookbooks = async () => {
+    setLoadingLookbooks(true);
+    setLookbookError(null);
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/lookbook/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setLookbooks(res.data || []);
+    } catch (err) {
+      console.error("Error fetching lookbooks:", err);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/lookbook`);
+        setLookbooks(res.data || []);
+      } catch (e) {
+        setLookbookError("Failed to fetch lookbooks from database.");
+      }
+    } finally {
+      setLoadingLookbooks(false);
+    }
+  };
+
+  const handleAddLookbookCard = () => {
+    const newCard = {
+      id: `temp_${Date.now()}`,
+      title: 'New Luxury Piece',
+      tag: 'Featured',
+      image: '',
+      image_url: '',
+      description: 'Insert item description details here.',
+      link: '/?category=Necklaces',
+      display_order: lookbooks.length + 1,
+      is_active: true,
+      isNew: true
+    };
+    setLookbooks(prev => [...prev, newCard]);
+  };
+
+  const handleUpdateLookbookCardField = (id, field, value) => {
+    setLookbooks(prev => prev.map(card => {
+      if (card.id === id) {
+        return { ...card, [field]: value };
+      }
+      return card;
+    }));
+  };
+
+  const handleUploadLookbookImage = async (file, cardId) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const response = await axios.post(`${API_BASE_URL}/products/upload`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      if (response.data && response.data.url) {
+        let uploadedUrl = response.data.url;
+        if (uploadedUrl.startsWith('/static/')) {
+          uploadedUrl = `${SERVER_BASE_URL}${uploadedUrl}`;
+        }
+        setLookbooks(prev => prev.map(card => {
+          if (card.id === cardId) {
+            return { ...card, image: uploadedUrl, image_url: uploadedUrl };
+          }
+          return card;
+        }));
+      }
+    } catch (err) {
+      console.error("Error uploading lookbook image:", err);
+      alert("Failed to upload image.");
+    }
+  };
+
+  const handleSaveLookbookCard = async (card) => {
+    setLookbookError(null);
+    setLookbookSuccess(null);
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const payload = {
+        title: card.title || 'Featured Piece',
+        tag: card.tag || 'Featured',
+        image: card.image || card.image_url || '',
+        description: card.description || '',
+        link: card.link || '',
+        display_order: parseInt(card.display_order || 0),
+        is_active: card.is_active !== false
+      };
+
+      if (card.isNew || String(card.id).startsWith('temp_')) {
+        await axios.post(`${API_BASE_URL}/lookbook`, payload, { headers });
+        setLookbookSuccess("Lookbook card created successfully in database!");
+      } else {
+        await axios.put(`${API_BASE_URL}/lookbook/${card.id}`, payload, { headers });
+        setLookbookSuccess("Lookbook card updated successfully in database!");
+      }
+      await fetchLookbooks();
+    } catch (err) {
+      console.error("Error saving lookbook card:", err);
+      setLookbookError(err.response?.data?.message || "Failed to save lookbook card.");
+    }
+  };
+
+  const handleSaveAllLookbookCards = async () => {
+    setSavingLookbooks(true);
+    setLookbookError(null);
+    setLookbookSuccess(null);
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      for (let i = 0; i < lookbooks.length; i++) {
+        const card = lookbooks[i];
+        const payload = {
+          title: card.title || 'Featured Piece',
+          tag: card.tag || 'Featured',
+          image: card.image || card.image_url || '',
+          description: card.description || '',
+          link: card.link || '',
+          display_order: i + 1,
+          is_active: card.is_active !== false
+        };
+        if (card.isNew || String(card.id).startsWith('temp_')) {
+          await axios.post(`${API_BASE_URL}/lookbook`, payload, { headers });
+        } else {
+          await axios.put(`${API_BASE_URL}/lookbook/${card.id}`, payload, { headers });
+        }
+      }
+      setLookbookSuccess("All Featured Luxury Gallery cards saved successfully in database!");
+      await fetchLookbooks();
+    } catch (err) {
+      console.error("Error saving all lookbook cards:", err);
+      setLookbookError(err.response?.data?.message || "Failed to save lookbook cards.");
+    } finally {
+      setSavingLookbooks(false);
+    }
+  };
+
+  const handleDeleteLookbookCard = async (cardId) => {
+    if (!window.confirm("Are you sure you want to delete this Lookbook card?")) return;
+
+    if (String(cardId).startsWith('temp_')) {
+      setLookbooks(prev => prev.filter(c => c.id !== cardId));
+      return;
+    }
+
+    setLookbookError(null);
+    setLookbookSuccess(null);
+    try {
+      const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      await axios.delete(`${API_BASE_URL}/lookbook/${cardId}`, { headers });
+      setLookbookSuccess("Lookbook card deleted successfully from database!");
+      setLookbooks(prev => prev.filter(c => c.id !== cardId));
+    } catch (err) {
+      console.error("Error deleting lookbook card:", err);
+      setLookbookError(err.response?.data?.message || "Failed to delete lookbook card.");
+    }
+  };
+
+
   const handleOpenAddCollection = () => {
     setEditingCollection(null);
     setCollectionForm({
@@ -1091,6 +1261,7 @@ export const AdminControl = () => {
         fetchHomepageSettings();
         fetchAdminCategories();
         fetchCollections();
+        fetchLookbooks();
       }
     }
   }, [isAdmin, activeTab, activeConfigSubTab]);
@@ -2702,6 +2873,166 @@ export const AdminControl = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* FEATURED LUXURY GALLERY CARDS MANAGEMENT */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-850">
+            <div>
+              <h4 className="text-lg font-bold text-slate-850 dark:text-slate-100 flex items-center gap-2">
+                <span>Featured Luxury Gallery Cards</span>
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-[#D4A75F]/15 text-[#D4A75F] border border-[#D4A75F]/30 rounded-full">
+                  {lookbooks.length}
+                </span>
+              </h4>
+              <p className="text-xs text-slate-400 mt-1">Configure the featured 3D parallax cards displayed on the customer home page.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddLookbookCard}
+              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 dark:bg-[#7E22CE]/15 dark:hover:bg-[#7E22CE]/30 dark:text-[#D8B4FE] dark:hover:text-[#E9D5FF] dark:border-[#A855F7]/40 dark:hover:border-[#C084FC]/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Card</span>
+            </button>
+          </div>
+
+          {lookbookSuccess && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-semibold">
+              {lookbookSuccess}
+            </div>
+          )}
+          {lookbookError && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs font-semibold">
+              {lookbookError}
+            </div>
+          )}
+
+          {loadingLookbooks ? (
+            <div className="flex justify-center items-center py-12">
+              <RefreshCw className="h-6 w-6 text-[#D4A75F] animate-spin" />
+              <span className="ml-2 text-xs text-slate-400">Loading gallery cards from database...</span>
+            </div>
+          ) : lookbooks.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-xs sm:text-sm font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+              No luxury gallery cards added yet. Click "+ Add Card" to create one.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {lookbooks.map((card, idx) => (
+                <div key={card.id || idx} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
+                    <span className="text-xs font-bold tracking-widest text-[#D4A75F] uppercase">Card #{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLookbookCard(card.id)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+                      title="Delete Card"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-850">
+                    {card?.image || card?.image_url ? (
+                      <>
+                        <img src={card.image || card.image_url} alt={card.title || 'Luxury Item'} className="w-full h-full object-cover" />
+                        <label className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
+                          <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
+                            <Upload className="h-3 w-3" /> Change
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleUploadLookbookImage(e.target.files[0], card.id);
+                              }
+                            }}
+                          />
+                        </label>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center text-slate-400 p-4">
+                        <Upload className="h-6 w-6 mb-1" />
+                        <span className="text-[10px] font-bold">Upload Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleUploadLookbookImage(e.target.files[0], card.id);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={card?.title || ''}
+                        onChange={(e) => handleUpdateLookbookCardField(card.id, 'title', e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Description</label>
+                      <textarea
+                        rows={3}
+                        value={card?.description || ''}
+                        onChange={(e) => handleUpdateLookbookCardField(card.id, 'description', e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-800 dark:text-slate-100 resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Redirection Link</label>
+                      <input
+                        type="text"
+                        value={card?.link || ''}
+                        onChange={(e) => handleUpdateLookbookCardField(card.id, 'link', e.target.value)}
+                        placeholder="/?category=Necklaces"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveLookbookCard(card)}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Save Card</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {lookbooks.length > 0 && (
+            <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-850">
+              <button
+                type="button"
+                onClick={handleSaveAllLookbookCards}
+                disabled={savingLookbooks}
+                className="flex items-center gap-1.5 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                {savingLookbooks ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                <span>Save All Lookbook Cards</span>
+              </button>
             </div>
           )}
         </div>
