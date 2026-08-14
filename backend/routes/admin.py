@@ -35,7 +35,7 @@ def admin_login():
     # 1. Search admins table via AdminModel
     admin_record = AdminModel.query.filter(
         (AdminModel.username == admin_identifier) | 
-        (func.lower(AdminModel.username) == admin_identifier.lower())
+        (AdminModel.username == admin_identifier.lower())
     ).first()
 
     admin_id_str = None

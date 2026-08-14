@@ -83,7 +83,7 @@ def login():
     from backend.models.admin import AdminModel
     admin_record = AdminModel.query.filter(
         (AdminModel.username == str(raw_email).strip()) | 
-        (func.lower(AdminModel.username) == str(raw_email).strip().lower())
+        (AdminModel.username == str(raw_email).strip().lower())
     ).first()
 
     if admin_record:
@@ -496,7 +496,7 @@ def user_login_route():
     from backend.models.admin import AdminModel
     admin_record = AdminModel.query.filter(
         (AdminModel.username == str(raw_name).strip()) | 
-        (func.lower(AdminModel.username) == str(raw_name).strip().lower())
+        (AdminModel.username == str(raw_name).strip().lower())
     ).first()
 
     if admin_record:
