@@ -142,11 +142,3 @@ CREATE TABLE users (
 
 ---
 
-## 7. Zero-`.env` Fallback Resilience
-
-### Architecture Location
-- **Module**: `backend/config.py`
-
-### Specifications
-- Centralized configuration system defaults to secure fallback keys for database connection strings, AES encryption digests, and JWT tokens if a `.env` file is missing.
-- Allows immediate, zero-configuration local execution (`python3 -m backend.app`) while remaining fully compatible with environment variable overrides in production (e.g., Render, Railway, AWS).
