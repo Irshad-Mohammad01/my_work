@@ -135,7 +135,6 @@ export const AdminControl = () => {
     owner_bio_2: "",
     owner_quote: "",
     video_showcase_url: "",
-    luxury_gallery_items: [],
     owner_stats: [
       { label: 'Years of Craft', value: 25, suffix: '+' },
       { label: 'Unique Designs', value: 1200, suffix: '+' },
@@ -749,7 +748,6 @@ export const AdminControl = () => {
           return defaultVal;
         };
 
-        const galleryItems = safeParseJSON(response.data.luxury_gallery_items, []);
         const statsItems = safeParseJSON(response.data.owner_stats, [
           { label: 'Years of Craft', value: 25, suffix: '+' },
           { label: 'Unique Designs', value: 1200, suffix: '+' },
@@ -787,7 +785,6 @@ export const AdminControl = () => {
           owner_bio_2: response.data.owner_bio_2 || "",
           owner_quote: response.data.owner_quote || "",
           video_showcase_url: response.data.video_showcase_url || "/golden-stage.mp4",
-          luxury_gallery_items: Array.isArray(galleryItems) ? galleryItems : [],
           owner_stats: Array.isArray(statsItems) ? statsItems : [],
           owner_badges: Array.isArray(badgesItems) ? badgesItems : [],
           occasion_items_en: Array.isArray(occasionEn) ? occasionEn : [],
@@ -937,7 +934,6 @@ export const AdminControl = () => {
       const token = localStorage.getItem('bb_token') || localStorage.getItem('token');
       const payload = {
         ...homepageSettings,
-        luxury_gallery_items: JSON.stringify(homepageSettings.luxury_gallery_items),
         owner_stats: JSON.stringify(homepageSettings.owner_stats),
         owner_badges: JSON.stringify(homepageSettings.owner_badges),
         occasion_items_en: JSON.stringify(homepageSettings.occasion_items_en),
@@ -1038,13 +1034,6 @@ export const AdminControl = () => {
             setHomepageSettings(prev => ({
               ...prev,
               occasion_items_hi: updatedItems
-            }));
-          } else {
-            const updatedItems = [...homepageSettings.luxury_gallery_items];
-            updatedItems[galleryIndex].image = uploadedUrl;
-            setHomepageSettings(prev => ({
-              ...prev,
-              luxury_gallery_items: updatedItems
             }));
           }
         } else if (targetField === 'category') {
@@ -2494,7 +2483,6 @@ export const AdminControl = () => {
 
     const safeCategories = Array.isArray(adminCategories) ? adminCategories : [];
     const safeCollections = Array.isArray(collectionsList) ? collectionsList : [];
-    const safeGalleryItems = Array.isArray(homepageSettings?.luxury_gallery_items) ? homepageSettings.luxury_gallery_items : [];
     const safeOwnersList = Array.isArray(homepageSettings?.owners_list) ? homepageSettings.owners_list : [];
 
     return (
@@ -3090,161 +3078,6 @@ export const AdminControl = () => {
             >
               {homepageUpdating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               <span>Save Video Showcase</span>
-            </button>
-          </div>
-        </form>
-
-        {/* SECTION 4: LUXURY GALLERY CARDS */}
-        <form onSubmit={handleSaveHomepageSettings} className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="text-lg font-bold text-slate-850 dark:text-slate-100">Featured Luxury Gallery Cards</h4>
-              <p className="text-xs text-slate-400">Configure the featured 3D parallax cards displayed on the customer home page.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const newCard = {
-                  id: Date.now(),
-                  title: "New Luxury Piece",
-                  tag: "Special Edition",
-                  image: "/luxury_solitaire_ring.png",
-                  description: "Insert item description details here.",
-                  link: "/?category=Rings"
-                };
-                setHomepageSettings(prev => ({
-                  ...prev,
-                  luxury_gallery_items: [...safeGalleryItems, newCard]
-                }));
-              }}
-              className="px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/25 dark:bg-[#7E22CE]/15 dark:hover:bg-[#7E22CE]/30 dark:text-[#D8B4FE] dark:hover:text-[#E9D5FF] dark:border-[#A855F7]/40 dark:hover:border-[#C084FC]/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Card</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {safeGalleryItems.map((card, idx) => (
-              <div key={card?.id || idx} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
-                  <span className="text-xs font-bold tracking-widest text-[#D4A75F] uppercase">Card #{idx + 1}</span>
-                  {safeGalleryItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this card?")) {
-                          const updated = safeGalleryItems.filter((_, i) => i !== idx);
-                          setHomepageSettings(prev => ({ ...prev, luxury_gallery_items: updated }));
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative w-full h-40 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-850">
-                  {card?.image ? (
-                    <>
-                      <img src={card.image} alt={card.title || 'Luxury Item'} className="w-full h-full object-cover" />
-                      <label className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
-                        <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                          <Upload className="h-3 w-3" /> Change
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleUploadMediaFile(e.target.files[0], null, idx);
-                            }
-                          }}
-                        />
-                      </label>
-                    </>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center justify-center text-slate-400 p-4">
-                      <Upload className="h-6 w-6 mb-1" />
-                      <span className="text-[10px] font-bold">Upload Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleUploadMediaFile(e.target.files[0], null, idx);
-                          }
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={card?.title || ''}
-                      onChange={(e) => {
-                        const updated = [...safeGalleryItems];
-                        if (updated[idx]) {
-                          updated[idx] = { ...updated[idx], title: e.target.value };
-                          setHomepageSettings(prev => ({ ...prev, luxury_gallery_items: updated }));
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Description</label>
-                    <textarea
-                      rows={3}
-                      value={card?.description || ''}
-                      onChange={(e) => {
-                        const updated = [...safeGalleryItems];
-                        if (updated[idx]) {
-                          updated[idx] = { ...updated[idx], description: e.target.value };
-                          setHomepageSettings(prev => ({ ...prev, luxury_gallery_items: updated }));
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Redirection Link</label>
-                    <input
-                      type="text"
-                      value={card?.link || ''}
-                      onChange={(e) => {
-                        const updated = [...safeGalleryItems];
-                        if (updated[idx]) {
-                          updated[idx] = { ...updated[idx], link: e.target.value };
-                          setHomepageSettings(prev => ({ ...prev, luxury_gallery_items: updated }));
-                        }
-                      }}
-                      placeholder="/?category=Necklaces"
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-850">
-            <button
-              type="submit"
-              disabled={homepageUpdating}
-              className="flex items-center gap-1.5 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
-            >
-              {homepageUpdating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              <span>Save Luxury Cards</span>
             </button>
           </div>
         </form>

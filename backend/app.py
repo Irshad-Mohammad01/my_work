@@ -47,6 +47,7 @@ from backend.routes.collections import collections_bp
 from backend.routes.maintenance import maintenance_bp
 from backend.routes.high_demand import high_demand_bp
 from backend.routes.payments import payments_bp
+from backend.routes.lookbook import lookbook_bp
 from backend.middleware.maintenance import check_maintenance_mode
 
 # Run startup environment validation
@@ -151,6 +152,8 @@ app.register_blueprint(collection_banners_bp, url_prefix='/api/collection-banner
 app.register_blueprint(collections_bp, url_prefix='/api/collections')
 app.register_blueprint(maintenance_bp, url_prefix='/api/maintenance')
 app.register_blueprint(high_demand_bp, url_prefix='/api/high-demand')
+app.register_blueprint(lookbook_bp, url_prefix='/api/lookbook')
+app.register_blueprint(lookbook_bp, url_prefix='/api/lookbooks', name='lookbooks')
 
 def print_registered_routes(app_instance):
     """Prints all registered routes at app startup for production route visibility."""
@@ -402,6 +405,68 @@ def seed_database():
             print("[SEED] Successfully seeded default collections.")
         else:
             print("[SEED] Collections already exist. Skipping seed.")
+
+        # Seed Lookbooks
+        from backend.models.lookbook import LookbookModel
+        import json
+        if LookbookModel.query.count() == 0:
+            default_lookbooks = [
+                {
+                    "title": "Imperial Emerald & Gold Choker",
+                    "tag": "Imperial Collection",
+                    "image": "/luxury_emerald_necklace.png",
+                    "description": "Exquisite 22K gold choker adorned with handpicked Zambian emeralds, South Sea pearls, and intricate Kundan detailing.",
+                    "details": json.dumps([
+                        "Metal: 22K Yellow Gold (BIS Hallmarked)",
+                        "Gemstones: Zambian Emeralds & South Sea Pearls",
+                        "Craftsmanship: Handcrafted Kundan & Meenakari",
+                        "Weight: 84.5 grams",
+                        "Certification: GIA & IGI Certified Gemstones"
+                    ]),
+                    "link": "/?category=Necklaces",
+                    "display_order": 1,
+                    "is_active": True
+                },
+                {
+                    "title": "The Royal Polki Bridal Set",
+                    "tag": "Heritage Craft",
+                    "image": "/luxury_bridal_set.png",
+                    "description": "A magnificent heirloom bridal collection featuring uncut diamonds, raw rubies, and premium Meenakari artistry.",
+                    "details": json.dumps([
+                        "Metal: 22K Yellow Gold (BIS Hallmarked)",
+                        "Diamonds: Natural Uncut Polki Diamonds",
+                        "Gemstones: Burmese Natural Rubies",
+                        "Set Includes: Choker, Long Haar, Earrings & Maang Tikka",
+                        "Heritage: Royal Jaipur Atelier Design"
+                    ]),
+                    "link": "/?category=Bridal%20Collection",
+                    "display_order": 2,
+                    "is_active": True
+                },
+                {
+                    "title": "Dazzling Solitaire Diamond Ring",
+                    "tag": "Modern Romance",
+                    "image": "/luxury_solitaire_ring.png",
+                    "description": "A breathtaking 3-carat certified diamond solitaire set in a refined 18k white gold and platinum band.",
+                    "details": json.dumps([
+                        "Center Diamond: 3.01 Carat VVS1 Clarity, D Color",
+                        "Cut: Excellent Ideal Cut Solitaire",
+                        "Metal: 18K Platinum & White Gold",
+                        "Band Style: Micro-pave Diamond Accent Band",
+                        "Guarantee: Lifetime Platinum Authenticity Card"
+                    ]),
+                    "link": "/?category=Rings",
+                    "display_order": 3,
+                    "is_active": True
+                }
+            ]
+            for lb_data in default_lookbooks:
+                lb = LookbookModel(**lb_data)
+                db.session.add(lb)
+            db.session.commit()
+            print("[SEED] Successfully seeded default lookbooks.")
+        else:
+            print("[SEED] Lookbooks already exist. Skipping seed.")
     except Exception as e:
         print("[SEED] Error seeding database:", e)
 

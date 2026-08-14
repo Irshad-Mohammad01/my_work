@@ -154,6 +154,8 @@ export const LuxuryGallery = React.memo(({ items: propItems }) => {
     return [];
   }, [propItems, language]);
 
+  if (items.length === 0) return null;
+
   return (
     <section className="relative w-full overflow-hidden py-16 bg-transparent transition-colors duration-300">
       {/* Background Ornamentation */}

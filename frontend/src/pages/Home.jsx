@@ -1392,10 +1392,10 @@ export const Home = () => {
     owner_bio_1: "With over 25 years of dedication to the ancient art of Indian jewellery...",
     owner_bio_2: "A third-generation goldsmith trained in the royal ateliers...",
     owner_quote: "Every jewel we craft carries a piece of our soul...",
-    video_showcase_url: "/golden-stage.mp4",
-    luxury_gallery_items: []
+    video_showcase_url: "/golden-stage.mp4"
   });
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [lookbookItems, setLookbookItems] = useState([]);
 
   // Auto scroll slides
   useEffect(() => {
@@ -1420,14 +1420,6 @@ export const Home = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/admin/settings`);
       if (response.data) {
-        let galleryItems = [];
-        if (response.data.luxury_gallery_items) {
-          try {
-            galleryItems = JSON.parse(response.data.luxury_gallery_items);
-          } catch (e) {
-            console.error("Error parsing luxury gallery items:", e);
-          }
-        }
         setSiteSettings({
           owner_image: response.data.owner_image || "/owner.png",
           owner_name: response.data.owner_name || "Shri Suresh Soni",
@@ -1437,7 +1429,6 @@ export const Home = () => {
           owner_bio_2: response.data.owner_bio_2 || "",
           owner_quote: response.data.owner_quote || "",
           video_showcase_url: response.data.video_showcase_url || "/golden-stage.mp4",
-          luxury_gallery_items: galleryItems,
           owner_stats: response.data.owner_stats,
           owner_badges: response.data.owner_badges,
           occasion_items_en: response.data.occasion_items_en,
@@ -1490,8 +1481,19 @@ export const Home = () => {
         setBannersLoading(false);
       }
     };
+    const fetchLookbooks = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/lookbook`);
+        if (response.data && Array.isArray(response.data)) {
+          setLookbookItems(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching lookbook cards from database:", err);
+      }
+    };
     fetchActiveBanners();
     fetchSiteSettings();
+    fetchLookbooks();
   }, [bannerRefreshTrigger]);
 
   const fetchAllBanners = async () => {
@@ -1991,7 +1993,7 @@ export const Home = () => {
 
       {!activeSearch && activeTab === 'products' && (
         <>
-          <LuxuryGallery items={siteSettings.luxury_gallery_items} />
+          <LuxuryGallery items={lookbookItems} />
           {activeCollection === 'All' && (
             <OccasionGallery
               activeCollection={activeCollection}
