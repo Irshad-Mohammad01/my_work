@@ -201,108 +201,11 @@ def run_updates():
                 "owner_bio_2": "A third-generation goldsmith trained in the royal ateliers of Jaipur, he brings Kundan, Meenakari, and Jadau traditions into every handcrafted piece — blending timeless heritage with contemporary elegance.",
                 "owner_quote": "Every jewel we craft carries a piece of our soul — because true luxury is not just about gold, it is about the love and legacy it carries forever.",
                 "video_showcase_url": "/golden-stage.mp4",
-                "luxury_gallery_items": json.dumps([
-                    {
-                        "id": 1,
-                        "title": "Imperial Emerald & Gold Choker",
-                        "description": "Exquisite 22k gold choker adorned with handpicked Zambian emeralds, South Sea pearls, and intricate Kundan detailing.",
-                        "image": "/luxury_emerald_necklace.png",
-                        "link": "/?category=Necklaces"
-                    },
-                    {
-                        "id": 2,
-                        "title": "The Royal Polki Bridal Set",
-                        "description": "A magnificent heirloom bridal collection featuring uncut diamonds, raw rubies, and premium Meenakari artistry.",
-                        "image": "/luxury_bridal_set.png",
-                        "link": "/?category=Bridal%20Collection"
-                    },
-                    {
-                        "id": 3,
-                        "title": "Dazzling Solitaire Diamond Ring",
-                        "description": "A breathtaking 3-carat certified diamond solitaire set in a refined 18k white gold and platinum band.",
-                        "image": "/luxury_solitaire_ring.png",
-                        "link": "/?category=Rings"
-                    }
-                ]),
                 "owner_stats": json.dumps([
                     {"label": "Years of Craft", "value": 25, "suffix": "+"},
                     {"label": "Unique Designs", "value": 1200, "suffix": "+"},
                     {"label": "Happy Clients", "value": 8500, "suffix": "+"},
                     {"label": "Awards Won", "value": 18, "suffix": ""}
-                ]),
-                "owner_badges": json.dumps([
-                    "BIS Hallmark Certified",
-                    "ISO 9001:2015",
-                    "Rajasthan Ratna Awardee",
-                    "GIA Member"
-                ]),
-                "occasion_items_en": json.dumps([
-                    {
-                        "id": 1,
-                        "title": "Date Night",
-                        "subtitle": "Elegance & Layered Statements",
-                        "image": "",
-                        "description": "Perfect combinations of layered gold chains, subtle collar necklaces, and delicate hoops. Crafted to make statement memories under candlelit tables.",
-                        "tips": ["Pair with solid dark necklines to highlight gold textures.", "Layer 2-3 chains of varying lengths.", "Keep earrings minimal if layering necklaces."]
-                    },
-                    {
-                        "id": 2,
-                        "title": "Wedding Wear",
-                        "subtitle": "Regal Heritage Kundan",
-                        "image": "",
-                        "description": "Ornate traditional bridal choker sets, heavy designer jhumkas, and matching hand ornaments. Tailored for classic royal elegance.",
-                        "tips": ["Complement heavily embroidered outfits with choker-length sets.", "Style with matching maang-tika for classic look.", "Incorporate natural pearls for color balance."]
-                    },
-                    {
-                        "id": 3,
-                        "title": "Office Wear",
-                        "subtitle": "Minimalistic Luxury Studs",
-                        "image": "",
-                        "description": "Chic, lightweight, and modern daily-wear items. Understated solitaire bands, studs, and sleek bracelets designed for executive confidence.",
-                        "tips": ["Stick to one key statement piece (e.g. sleek studs or minimalist watch).", "Platinum/white-gold options work best with formal suits.", "Avoid noisy jingling bracelets."]
-                    },
-                    {
-                        "id": 4,
-                        "title": "Daily Wear",
-                        "subtitle": "Versatile Chic Bangles",
-                        "image": "",
-                        "description": "Comfortable, durable, yet elegant gold bands and bracelets. Built for regular wear while retaining luxurious gold textures.",
-                        "tips": ["Mix different gold karats for unique color play.", "Opt for smooth, snag-free lock styles.", "Great for layering alongside wristwatches."]
-                    }
-                ]),
-                "occasion_items_hi": json.dumps([
-                    {
-                        "id": 1,
-                        "title": "डिनर डेट",
-                        "subtitle": "लालित्य और लेयर्ड आभूषण",
-                        "image": "",
-                        "description": "लेयर्ड सोने की जंजीरों, सूक्ष्म कॉलर हार और नाजुक हुप्स का सही संयोजन। मोमबत्ती की रोशनी में सुखद यादें बनाने के लिए डिज़ाइन किया गया।",
-                        "tips": ["सोने की बनावट को उभारने के लिए गहरे रंग के कपड़ों के साथ पहनें।", "अलग-अलग लंबाई की 2-3 चेन लेयर करें।", "हार लेयर करते समय झुमके हल्के रखें।"]
-                    },
-                    {
-                        "id": 2,
-                        "title": "शादी विवाह",
-                        "subtitle": "शाही विरासत कुंदन",
-                        "image": "",
-                        "description": "कढ़ाई वाले परिधानों के साथ चोकर-लंबाई वाले सेट पहनें। क्लासिक लुक के लिए मांग-टीका के साथ स्टाइल करें।",
-                        "tips": ["कढ़ाई वाले परिधानों के साथ चोकर-लंबाई वाले सेट पहनें।", "क्लासिक लुक के लिए मांग-टीका के साथ स्टाइल करें।", "रंग संतुलन के लिए प्राकृतिक मोतियों को शामिल करें।"]
-                    },
-                    {
-                        "id": 3,
-                        "title": "ऑफिस वियर",
-                        "subtitle": "न्यूनतम लक्जरी स्टड्स",
-                        "image": "",
-                        "description": "ठाठ, हल्के और आधुनिक दैनिक-पहनने वाले आभूषण। कार्यकारी आत्मविश्वास के लिए सुरुचिपूर्ण सॉलिटेयर रिंग, स्टड्स और चिकनी ब्रेसलेट।",
-                        "tips": ["एक प्रमुख आभूषण पहनें (जैसे सूक्ष्म स्टड्स या न्यूनतम ब्रेसलेट)।", "औपचारिक सूट के साथ सफेद सोना/प्लैटिनम सबसे अच्छे लगते हैं।", "आवाज करने वाले कंगन पहनने से बचें।"]
-                    },
-                    {
-                        "id": 4,
-                        "title": "दैनिक पहनावा",
-                        "subtitle": "बहुमुखी ब्रेसलेट",
-                        "image": "",
-                        "description": "आरामदायक, टिकाऊ, फिर भी सुरुचिपूर्ण सोने के छल्ले और कंगन। शानदार बनावट के साथ नियमित रूप से पहनने के लिए उपयुक्त।",
-                        "tips": ["अनोखे लुक के लिए सोने के विभिन्न रंगों को मिलाएं।", "स्मूथ और सुरक्षित लॉक स्टाइल चुनें।", "कन्हई घड़ी के साथ लेयरिंग के लिए बेहतरीन।"]
-                    }
                 ]),
                 "owners_list": json.dumps([
                     {
