@@ -64,46 +64,56 @@ hardcoded_collections = [
     }
 ]
 
-with app.app_context():
-    migrated_count = 0
-    updated_count = 0
-    
-    for item in hardcoded_collections:
-        existing = CollectionModel.query.filter(
-            (CollectionModel.name == item["name"]) | (CollectionModel.slug == item["slug"])
-        ).first()
+def run_migration():
+    """
+    MANUAL ONLY MIGRATION SCRIPT.
+    Must only run when explicitly called by administrator/developer via CLI.
+    Never executes automatically during server startup, app initialization, or API requests.
+    """
+    with app.app_context():
+        migrated_count = 0
+        updated_count = 0
         
-        tips_str = json.dumps(item["tips"])
-        
-        if existing:
-            # Update missing fields to ensure full data richness
-            existing.subtitle = item["subtitle"]
-            existing.description = item["description"]
-            existing.image = item["image"]
-            existing.thumbnail_image = item["image"]
-            existing.banner_image = item["image"]
-            existing.styling_tips = tips_str
-            existing.display_order = item["display_order"]
-            existing.is_active = True
-            updated_count += 1
-            print(f"[MIGRATE] Updated existing collection record: '{existing.name}'")
-        else:
-            new_coll = CollectionModel(
-                name=item["name"],
-                slug=item["slug"],
-                subtitle=item["subtitle"],
-                description=item["description"],
-                image=item["image"],
-                thumbnail_image=item["image"],
-                banner_image=item["image"],
-                styling_tips=tips_str,
-                display_order=item["display_order"],
-                is_active=True
-            )
-            db.session.add(new_coll)
-            migrated_count += 1
-            print(f"[MIGRATE] Inserted new collection record: '{item['name']}'")
+        for item in hardcoded_collections:
+            existing = CollectionModel.query.filter(
+                (CollectionModel.name == item["name"]) | (CollectionModel.slug == item["slug"])
+            ).first()
             
-    db.session.commit()
-    print(f"\n[SUMMARY] Total Collections in DB: {CollectionModel.query.count()}")
-    print(f"[SUMMARY] Migrated: {migrated_count}, Updated: {updated_count}")
+            tips_str = json.dumps(item["tips"])
+            
+            if existing:
+                # Update missing fields to ensure full data richness
+                existing.subtitle = item["subtitle"]
+                existing.description = item["description"]
+                existing.image = item["image"]
+                existing.thumbnail_image = item["image"]
+                existing.banner_image = item["image"]
+                existing.styling_tips = tips_str
+                existing.display_order = item["display_order"]
+                existing.is_active = True
+                updated_count += 1
+                print(f"[MIGRATE] Updated existing collection record: '{existing.name}'")
+            else:
+                new_coll = CollectionModel(
+                    name=item["name"],
+                    slug=item["slug"],
+                    subtitle=item["subtitle"],
+                    description=item["description"],
+                    image=item["image"],
+                    thumbnail_image=item["image"],
+                    banner_image=item["image"],
+                    styling_tips=tips_str,
+                    display_order=item["display_order"],
+                    is_active=True
+                )
+                db.session.add(new_coll)
+                migrated_count += 1
+                print(f"[MIGRATE] Inserted new collection record: '{item['name']}'")
+                
+        db.session.commit()
+        print(f"\n[SUMMARY] Total Collections in DB: {CollectionModel.query.count()}")
+        print(f"[SUMMARY] Migrated: {migrated_count}, Updated: {updated_count}")
+
+if __name__ == '__main__':
+    run_migration()
+

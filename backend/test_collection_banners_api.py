@@ -11,13 +11,12 @@ from backend.models.collection_banner import CollectionBanner
 def test_api():
     print("[TEST] Running Collection Banners API full verification test suite...")
     with app.test_client() as client:
-        # 1. Fetch or create test collection
+        # 1. Fetch existing test collection (READ-ONLY, do not auto-seed)
         with app.app_context():
             coll = CollectionModel.query.first()
             if not coll:
-                coll = CollectionModel(name="Wedding Wear", slug="wedding-wear", description="Bridal collection")
-                db.session.add(coll)
-                db.session.commit()
+                print("[TEST] No collections found in database. Skipping collection banner mutation tests to prevent modifying DB.")
+                return
             coll_id = coll.id
             coll_name = coll.name
 
